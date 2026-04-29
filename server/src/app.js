@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import routes from './routes/index.route.js'; // Nhớ đuôi .js
-import errorHandler from './middlewares/error.middleware.js'; // Nhớ đuôi .js
+import routes from './routes/index.route.js'; 
+import errorHandler from './middlewares/error.middleware.js'; 
 
 const app = express();
 
