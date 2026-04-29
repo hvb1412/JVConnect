@@ -1,0 +1,27 @@
+{
+  "name": "jvconnect",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hvb1412/JVConnect.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hvb1412/JVConnect/issues"
+  },
+  "homepage": "https://github.com/hvb1412/JVConnect#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,19 @@
+# Bỏ qua node_modules của Root (nơi chứa thư viện concurrently)
+node_modules/
+
+# BẢO MẬT TỐI ĐA: Bỏ qua file biến môi trường gốc của toàn dự án
+.env
+.env.*
+
+# Bỏ qua các file log khi chạy npm install ở root
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Bỏ qua các thư mục cấu hình IDE và hệ điều hành (Global)
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
