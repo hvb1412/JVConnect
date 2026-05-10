@@ -1,50 +1,58 @@
-import { User } from "../models/index.js";
+import User from "../models/User.js";
 
-export const getUserProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
     try {
-        const { id } = req.params;
+        const userId = req.user.id;
 
-        // Tìm user theo ID và loại bỏ trường password không trả về
-        const user = await User.findById(id).select("-password");
+        const user = await User.findById(userId)
+            .select('-password');
 
         if (!user) {
-            return res
-                .status(404)
-                .json({ message: "Không tìm thấy người dùng" });
+            return res.status(404).json({
+                message: 'User not found',
+            });
         }
 
-        res.status(200).json({
-            success: true,
-            data: user,
-        });
+        return res.status(200).json(user);
+
     } catch (error) {
-        // Bắt lỗi nếu ID không đúng định dạng ObjectId của MongoDB
-        if (error.name === "CastError") {
-            return res
-                .status(400)
-                .json({ message: "ID người dùng không hợp lệ" });
-        }
-        res.status(500).json({ message: "Lỗi Server" });
+        return res.status(500).json({
+            message: 'Server error',
+        });
     }
 };
 
-export const searchUsers = async (req, res) => {
+export const updateProfile = async (req, res) => {
     try {
-        const area = req.query.area;
-        const occupation = req.query.occupation;
-        const keyword = req.query.keyword;
+        const userId = req.user.id;
 
-        const users = await User.find({
-            name: { $regex: keyword || "", $options: "i" },
-            area: { $regex: area || "", $options: "i" },
-            occupation: { $regex: occupation || "", $options: "i" },
-        }).select("-password");
+        const {
+            name,
+            avatarURL,
+            area,
+            occupation,
+            introduction,
+        } = req.body;
 
-        res.status(200).json({
-            success: true,
-            data: users,
-        });
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                name,
+                avatarURL,
+                area,
+                occupation,
+                introduction,
+            },
+            {
+                new: true,
+            }
+        ).select('-password');
+
+        return res.status(200).json(updatedUser);
+
     } catch (error) {
-        res.status(500).json({ message: "Lỗi Server" });
+        return res.status(500).json({
+            message: 'Server error',
+        });
     }
 };
