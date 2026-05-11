@@ -27,7 +27,7 @@ type ApiResponse<T> = {
 };
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: "http://localhost:5000/api",
 });
 
 const FALLBACK_AVATAR =
@@ -62,6 +62,17 @@ export async function searchUsers(params: {
 }
 
 export async function getUserProfile(id: string): Promise<UiUser> {
-  const response = await api.get<ApiResponse<BackendUser>>(`/users/${id}`);
+  const token = localStorage.getItem("token");
+
+  const response = await api.get<ApiResponse<BackendUser>>(
+    `/users/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
   return mapBackendUserToUi(response.data.data);
 }
+
