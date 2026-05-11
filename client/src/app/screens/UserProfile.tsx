@@ -157,7 +157,7 @@ export function UserProfile() {
             <DialogTitle>ユーザー通報</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <select
+            <select aria-label="Select report reason"
               className="w-full border rounded-md h-10 px-3"
               value={reason}
               onChange={(e) => setReason(e.target.value)}

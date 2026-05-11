@@ -1,50 +1,120 @@
-import { User } from "../models/index.js";
+import User from "../models/User.js";
+
+export const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+            .select('-password -confirmCode');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: user,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const {
+            name,
+            avatarURL,
+            area,
+            occupation,
+            introduction,
+        } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                name,
+                avatarURL,
+                area,
+                occupation,
+                introduction,
+            },
+            {
+                new: true,
+            }
+        ).select('-password -confirmCode');
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedUser,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
 
 export const getUserProfile = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Tìm user theo ID và loại bỏ trường password không trả về
-        const user = await User.findById(id).select("-password");
+        const user = await User.findById(id).select('-password');
 
         if (!user) {
-            return res
-                .status(404)
-                .json({ message: "Không tìm thấy người dùng" });
+            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
 
         res.status(200).json({
             success: true,
-            data: user,
+            data: user
         });
     } catch (error) {
-        // Bắt lỗi nếu ID không đúng định dạng ObjectId của MongoDB
-        if (error.name === "CastError") {
-            return res
-                .status(400)
-                .json({ message: "ID người dùng không hợp lệ" });
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'ID người dùng không hợp lệ' });
         }
-        res.status(500).json({ message: "Lỗi Server" });
+        res.status(500).json({ message: 'Lỗi Server' });
     }
 };
 
 export const searchUsers = async (req, res) => {
     try {
-        const area = req.query.area;
-        const occupation = req.query.occupation;
-        const keyword = req.query.keyword;
+        const { keyword, area, occupation } = req.query;
+        let query = {};
 
-        const users = await User.find({
-            name: { $regex: keyword || "", $options: "i" },
-            area: { $regex: area || "", $options: "i" },
-            occupation: { $regex: occupation || "", $options: "i" },
-        }).select("-password");
+        if (keyword) {
+            query.name = { $regex: keyword, $options: 'i' };
+        }
+        if (area) {
+            query.area = { $regex: area, $options: 'i' };
+        }
+        if (occupation) {
+            query.occupation = { $regex: occupation, $options: 'i' };
+        }
+
+        const users = await User.find(query).select('-password');
 
         res.status(200).json({
             success: true,
-            data: users,
+            data: users
         });
     } catch (error) {
-        res.status(500).json({ message: "Lỗi Server" });
+        res.status(500).json({ message: 'Lỗi Server' });
     }
 };
