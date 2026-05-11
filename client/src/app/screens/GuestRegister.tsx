@@ -7,7 +7,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Mail, Lock, User, Upload } from "lucide-react";
-import { registerAccount } from "../lib/accountStore";
+import { registerUser } from "../lib/authApi";
 
 export function GuestRegister() {
   const navigate = useNavigate();
@@ -16,8 +16,9 @@ export function GuestRegister() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registerError, setRegisterError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password) {
       setRegisterError("必須項目を入力してください。");
       return;
@@ -28,14 +29,21 @@ export function GuestRegister() {
       return;
     }
 
-    const result = registerAccount({ name, email, password });
-    if (!result.ok && result.reason === "duplicate_email") {
-      setRegisterError("このメールアドレスは既に登録されています。");
-      return;
+    try {
+      setIsLoading(true);
+      setRegisterError("");
+      const result = await registerUser(name, email, password);
+      
+      // Auto login after registration
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("userId", result.user.id);
+      
+      navigate("/user/home");
+    } catch (error: any) {
+      setRegisterError(error.message || "登録に失敗しました。");
+    } finally {
+      setIsLoading(false);
     }
-
-    setRegisterError("");
-    navigate("/user/home");
   };
 
   return (
@@ -160,10 +168,10 @@ export function GuestRegister() {
                 {registerError && <p className="text-sm text-red-600">{registerError}</p>}
 
                 <div className="space-y-3 pt-2">
-                  <Button className="w-full" size="lg" onClick={handleRegister}>
-                    登録
+                  <Button className="w-full" size="lg" onClick={handleRegister} disabled={isLoading}>
+                    {isLoading ? "登録中..." : "登録"}
                   </Button>
-                  <Button asChild variant="outline" className="w-full" size="lg">
+                  <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
                     <Link to="/guest/login">ログインへ</Link>
                   </Button>
                 </div>

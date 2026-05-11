@@ -1,5 +1,7 @@
 import axios from "axios";
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 export type BackendUser = {
     _id: string;
     name: string;
@@ -21,14 +23,32 @@ export type UiUser = {
     avatar: string;
 };
 
+export type FriendshipData = {
+    friendshipId: string;
+    friend: UiUser;
+};
+
+export type FriendRequestData = {
+    id: string;
+    sender: UiUser;
+    createdAt: string;
+};
+
+/** Relationship status between current user and a target user */
+export type FriendStatus = "friend" | "sent" | "received" | "none" | "self";
+
 type ApiResponse<T> = {
     success: boolean;
     data: T;
 };
 
+// ─── Axios instance ──────────────────────────────────────────────────────────
+
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
 });
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const FALLBACK_AVATAR =
     "https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080";
@@ -48,6 +68,13 @@ export function mapBackendUserToUi(user: BackendUser): UiUser {
     };
 }
 
+const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// ─── User APIs ────────────────────────────────────────────────────────────────
+
 export async function searchUsers(params: {
     keyword?: string;
     area?: string;
@@ -62,12 +89,8 @@ export async function searchUsers(params: {
 }
 
 export async function getUserProfile(id: string): Promise<UiUser> {
-    const token = localStorage.getItem("token");
-
     const response = await api.get<ApiResponse<BackendUser>>(`/users/${id}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeader(),
     });
 
     return mapBackendUserToUi(response.data.data);
@@ -80,15 +103,95 @@ export async function updateUserProfile(profileData: {
     occupation?: string;
     introduction?: string;
 }): Promise<UiUser> {
-    const token = localStorage.getItem("token");
     const response = await api.put<ApiResponse<BackendUser>>(
         `/users/profile`,
         profileData,
-        {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        },
+        { headers: getAuthHeader() },
     );
     return mapBackendUserToUi(response.data.data);
+}
+
+// ─── Friend List APIs ─────────────────────────────────────────────────────────
+
+export async function getFriendList(): Promise<FriendshipData[]> {
+    const response = await api.get<ApiResponse<{ friendshipId: string; friend: BackendUser }[]>>(
+        "/friends",
+        { headers: getAuthHeader() },
+    );
+
+    const items = Array.isArray(response.data?.data) ? response.data.data : [];
+    return items.map((item) => ({
+        friendshipId: item.friendshipId,
+        friend: mapBackendUserToUi(item.friend),
+    }));
+}
+
+export async function deleteFriend(friendId: string): Promise<boolean> {
+    const response = await api.delete<ApiResponse<unknown>>(`/friends/${friendId}`, {
+        headers: getAuthHeader(),
+    });
+    return response.data.success;
+}
+
+// ─── Friend Request APIs ──────────────────────────────────────────────────────
+
+/**
+ * Send a friend request to a user by their ID.
+ */
+export async function sendFriendRequest(receiverId: string): Promise<void> {
+    await api.post(
+        "/friends/requests",
+        { receiverId },
+        { headers: getAuthHeader() },
+    );
+}
+
+/**
+ * Get all incoming friend requests for the current user.
+ */
+export async function getIncomingRequests(): Promise<FriendRequestData[]> {
+    const response = await api.get<ApiResponse<{ _id: string; sender: BackendUser; createdAt: string }[]>>(
+        "/friends/requests",
+        { headers: getAuthHeader() },
+    );
+
+    const items = Array.isArray(response.data?.data) ? response.data.data : [];
+    return items.map((item) => ({
+        id: item._id,
+        sender: mapBackendUserToUi(item.sender),
+        createdAt: item.createdAt,
+    }));
+}
+
+/**
+ * Accept an incoming friend request.
+ */
+export async function acceptFriendRequest(requestId: string): Promise<void> {
+    await api.post(
+        `/friends/requests/${requestId}/accept`,
+        {},
+        { headers: getAuthHeader() },
+    );
+}
+
+/**
+ * Reject (or cancel) a friend request.
+ */
+export async function rejectFriendRequest(requestId: string): Promise<void> {
+    await api.delete(`/friends/requests/${requestId}`, {
+        headers: getAuthHeader(),
+    });
+}
+
+/**
+ * Get the friendship status between the current user and a target user.
+ */
+export async function getFriendStatus(
+    targetUserId: string,
+): Promise<{ status: FriendStatus; requestId?: string }> {
+    const response = await api.get<ApiResponse<{ status: FriendStatus; requestId?: string }>>(
+        `/friends/status/${targetUserId}`,
+        { headers: getAuthHeader() },
+    );
+    return response.data.data;
 }

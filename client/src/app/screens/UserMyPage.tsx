@@ -15,13 +15,7 @@ import { Label } from "../components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Textarea } from "../components/ui/textarea";
 import { Edit } from "lucide-react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../components/ui/select";
+
 import {
     Dialog,
     DialogContent,
@@ -30,32 +24,18 @@ import {
     DialogTitle,
 } from "../components/ui/dialog";
 import { getUserProfile, updateUserProfile } from "../lib/userApi";
+import { logout } from "../lib/authApi";
+import { LogOut } from "lucide-react";
 
 export function UserMyPage() {
     const navigate = useNavigate();
     const userId = localStorage.getItem("userId") || "";
+    const [name, setName] = useState("山田太郎");
+    const [avatar, setAvatar] = useState("");
     const [saving, setSaving] = useState(false);
-    const [area, setArea] = useState("東京");
-    const [industry, setIndustry] = useState("IT・ソフトウェア");
-    const [areaPreset, setAreaPreset] = useState<
-        "東京" | "大阪" | "京都" | "名古屋" | "福岡" | "その他"
-    >("東京");
-    const [industryPreset, setIndustryPreset] = useState<
-        | "IT・ソフトウェア"
-        | "テクノロジー"
-        | "製造業"
-        | "金融"
-        | "教育"
-        | "ヘルスケア"
-        | "デザイン"
-        | "コンサルティング"
-        | "その他"
-    >("IT・ソフトウェア");
-    const [areaOther, setAreaOther] = useState("");
-    const [industryOther, setIndustryOther] = useState("");
-    const [bio, setBio] = useState(
-        "テクノロジー業界で10年以上の経験があります。",
-    );
+    const [area, setArea] = useState("");
+    const [industry, setIndustry] = useState("");
+    const [bio, setBio] = useState("");
     const [editing, setEditing] = useState(false);
 
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -77,6 +57,8 @@ export function UserMyPage() {
 
                 const profile = await getUserProfile(userId);
 
+                setName(profile.name);
+                setAvatar(profile.avatar);
                 setArea(profile.location);
                 setIndustry(profile.role);
                 setBio(profile.intro);
@@ -92,6 +74,7 @@ export function UserMyPage() {
             setSaving(true);
 
             await updateUserProfile({
+                name: name,
                 area: area,
                 occupation: industry,
                 introduction: bio,
@@ -167,13 +150,13 @@ export function UserMyPage() {
                         <Card className="sticky top-24">
                             <CardContent className="p-6 text-center">
                                 <Avatar className="h-32 w-32 mx-auto mb-4">
-                                    <AvatarImage src={user.avatar} />
+                                    <AvatarImage src={avatar || user.avatar} />
                                     <AvatarFallback className="text-2xl">
-                                        山
+                                        {name ? name[0] : "山"}
                                     </AvatarFallback>
                                 </Avatar>
                                 <h2 className="text-xl font-bold mb-1">
-                                    山田太郎
+                                    {name}
                                 </h2>
                                 <p className="text-gray-600 mb-4">{industry}</p>
 
@@ -218,115 +201,34 @@ export function UserMyPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="area">地域</Label>
-                                    <Select
-                                        value={areaPreset}
-                                        onValueChange={(v) => {
-                                            setAreaPreset(v);
-                                            if (v !== "その他") {
-                                                setArea(v);
-                                            } else {
-                                                setArea(areaOther);
-                                            }
-                                        }}
+                                    <Label htmlFor="name">名前</Label>
+                                    <Input
+                                        id="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="名前を入力"
                                         disabled={!editing}
-                                    >
-                                        <SelectTrigger id="area">
-                                            <SelectValue placeholder="地域を選択" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="東京">
-                                                東京
-                                            </SelectItem>
-                                            <SelectItem value="大阪">
-                                                大阪
-                                            </SelectItem>
-                                            <SelectItem value="京都">
-                                                京都
-                                            </SelectItem>
-                                            <SelectItem value="名古屋">
-                                                名古屋
-                                            </SelectItem>
-                                            <SelectItem value="福岡">
-                                                福岡
-                                            </SelectItem>
-                                            <SelectItem value="その他">
-                                                その他
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {areaPreset === "その他" && (
-                                        <Input
-                                            value={areaOther}
-                                            onChange={(e) => {
-                                                setAreaOther(e.target.value);
-                                                setArea(e.target.value);
-                                            }}
-                                            placeholder="地域を入力"
-                                            disabled={!editing}
-                                        />
-                                    )}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="area">地域</Label>
+                                    <Input
+                                        id="area"
+                                        value={area}
+                                        onChange={(e) => setArea(e.target.value)}
+                                        placeholder="地域を入力"
+                                        disabled={!editing}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="industry">業界</Label>
-                                    <Select
-                                        value={industryPreset}
-                                        onValueChange={(v) => {
-                                            setIndustryPreset(v);
-                                            if (v !== "その他") {
-                                                setIndustry(v);
-                                            } else {
-                                                setIndustry(industryOther);
-                                            }
-                                        }}
+                                    <Input
+                                        id="industry"
+                                        value={industry}
+                                        onChange={(e) => setIndustry(e.target.value)}
+                                        placeholder="業界を入力"
                                         disabled={!editing}
-                                    >
-                                        <SelectTrigger id="industry">
-                                            <SelectValue placeholder="業界を選択" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="IT・ソフトウェア">
-                                                IT・ソフトウェア
-                                            </SelectItem>
-                                            <SelectItem value="テクノロジー">
-                                                テクノロジー
-                                            </SelectItem>
-                                            <SelectItem value="製造業">
-                                                製造業
-                                            </SelectItem>
-                                            <SelectItem value="金融">
-                                                金融
-                                            </SelectItem>
-                                            <SelectItem value="教育">
-                                                教育
-                                            </SelectItem>
-                                            <SelectItem value="ヘルスケア">
-                                                ヘルスケア
-                                            </SelectItem>
-                                            <SelectItem value="デザイン">
-                                                デザイン
-                                            </SelectItem>
-                                            <SelectItem value="コンサルティング">
-                                                コンサルティング
-                                            </SelectItem>
-                                            <SelectItem value="その他">
-                                                その他
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {industryPreset === "その他" && (
-                                        <Input
-                                            value={industryOther}
-                                            onChange={(e) => {
-                                                setIndustryOther(
-                                                    e.target.value,
-                                                );
-                                                setIndustry(e.target.value);
-                                            }}
-                                            placeholder="業界を入力"
-                                            disabled={!editing}
-                                        />
-                                    )}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="bio">自己紹介</Label>
@@ -402,6 +304,26 @@ export function UserMyPage() {
                                         }
                                     >
                                         削除
+                                    </Button>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-4">
+                                    <div>
+                                        <p className="font-medium">
+                                            ログアウト
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            現在のアカウントからログアウトします
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            logout();
+                                            navigate("/guest/login");
+                                        }}
+                                    >
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        ログアウト
                                     </Button>
                                 </div>
                             </CardContent>
