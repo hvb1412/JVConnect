@@ -4,7 +4,9 @@ import routes from './routes/index.route.js';
 import errorHandler from './middlewares/error.middleware.js';
 import crypto from 'crypto';
 
-global.crypto = crypto;
+if (!globalThis.crypto) {
+  globalThis.crypto = crypto.webcrypto;
+}
 
 
 const app = express();

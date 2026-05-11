@@ -53,7 +53,7 @@ export async function searchUsers(params: {
   area?: string;
   occupation?: string;
 }): Promise<UiUser[]> {
-  const response = await api.get<ApiResponse<BackendUser[]>>("/users/search", {
+  const response = await api.get<ApiResponse<BackendUser[]>>("/users/match", {
     params,
   });
 
