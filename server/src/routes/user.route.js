@@ -11,12 +11,10 @@ import authMiddleware from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.get('/:id', authMiddleware, getUserById);
+router.get('/match', searchUsers);
 
 router.put('/profile', authMiddleware, updateProfile);
 
-router.get('/match', searchUsers);
-
-router.get('/:id', getUserProfile);
+router.get('/:id', authMiddleware, getUserById);
 
 export default router;
