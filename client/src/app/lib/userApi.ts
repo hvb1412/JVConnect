@@ -73,19 +73,16 @@ export async function getUserProfile(id: string): Promise<UiUser> {
     return mapBackendUserToUi(response.data.data);
 }
 
-export async function updateUserProfile(
-    id: string,
-    profileData: {
-        name?: string;
-        avatarURL?: string;
-        area?: string;
-        occupation?: string;
-        introduction?: string;
-    },
-): Promise<UiUser> {
+export async function updateUserProfile(profileData: {
+    name?: string;
+    avatarURL?: string;
+    area?: string;
+    occupation?: string;
+    introduction?: string;
+}): Promise<UiUser> {
     const token = localStorage.getItem("token");
     const response = await api.put<ApiResponse<BackendUser>>(
-        `/users/${id}`,
+        `/users/profile`,
         profileData,
         {
             headers: {
