@@ -1,23 +1,26 @@
 import User from "../models/User.js";
 
-export const getProfile = async (req, res) => {
+export const getUserById = async (req, res) => {
     try {
-        const userId = req.user.id;
-
-        const user = await User.findById(userId)
-            .select('-password');
+        const user = await User.findById(req.params.id)
+            .select('-password -confirmCode');
 
         if (!user) {
             return res.status(404).json({
+                success: false,
                 message: 'User not found',
             });
         }
 
-        return res.status(200).json(user);
+        return res.status(200).json({
+            success: true,
+            data: user,
+        });
 
     } catch (error) {
         return res.status(500).json({
-            message: 'Server error',
+            success: false,
+            message: error.message,
         });
     }
 };
@@ -46,13 +49,24 @@ export const updateProfile = async (req, res) => {
             {
                 new: true,
             }
-        ).select('-password');
+        ).select('-password -confirmCode');
 
-        return res.status(200).json(updatedUser);
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: updatedUser,
+        });
 
     } catch (error) {
         return res.status(500).json({
-            message: 'Server error',
+            success: false,
+            message: error.message,
         });
     }
 };

@@ -1,6 +1,7 @@
 import express from 'express';
+
 import {
-    getProfile,
+    getUserById,
     updateProfile,
     getUserProfile,
     searchUsers
@@ -10,7 +11,7 @@ import authMiddleware from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.get('/profile', authMiddleware, getProfile);
+router.get('/:id', authMiddleware, getUserById);
 
 router.put('/profile', authMiddleware, updateProfile);
 
