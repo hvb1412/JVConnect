@@ -91,7 +91,7 @@ export function UserMyPage() {
         try {
             setSaving(true);
 
-            await updateUserProfile(userId, {
+            await updateUserProfile({
                 area: area,
                 occupation: industry,
                 introduction: bio,
