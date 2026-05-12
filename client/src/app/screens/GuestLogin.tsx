@@ -8,7 +8,7 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Mail, Lock } from "lucide-react";
-import { authenticateAccount } from "../lib/accountStore";
+import { loginUser } from "../lib/authApi";
 
 type ForgotStep = "email" | "guide" | "otp";
 
@@ -22,6 +22,7 @@ export function GuestLogin() {
   const [forgotStep, setForgotStep] = useState<ForgotStep>("email");
   const [code, setCode] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -54,19 +55,22 @@ export function GuestLogin() {
     navigate("/guest/login", { replace: true });
   };
 
-  const handleLogin = () => {
-    const result = authenticateAccount({ email, password });
-    if (!result.ok) {
-      if (result.reason === "locked") {
-        setLoginError("このアカウントはロックされています。管理者にお問い合わせください。");
-        return;
-      }
-      setLoginError("メールアドレスまたはパスワードが正しくありません。");
-      return;
+  const handleLogin = async () => {
+    try {
+      setIsLoading(true);
+      setLoginError("");
+      const result = await loginUser(email, password);
+      
+      // Store token and userId
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("userId", result.user.id);
+      
+      navigate("/user/home");
+    } catch (error: any) {
+      setLoginError(error.message || "メールアドレスまたはパスワードが正しくありません。");
+    } finally {
+      setIsLoading(false);
     }
-
-    setLoginError("");
-    navigate("/user/home");
   };
 
   return (
@@ -155,10 +159,10 @@ export function GuestLogin() {
                 {loginError && <p className="text-sm text-red-600">{loginError}</p>}
 
                 <div className="space-y-3">
-                  <Button className="w-full" size="lg" onClick={handleLogin}>
-                    ログイン
+                  <Button className="w-full" size="lg" onClick={handleLogin} disabled={isLoading}>
+                    {isLoading ? "ログイン中..." : "ログイン"}
                   </Button>
-                  <Button asChild variant="outline" className="w-full" size="lg">
+                  <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
                     <Link to="/guest/register">新規登録へ</Link>
                   </Button>
                 </div>

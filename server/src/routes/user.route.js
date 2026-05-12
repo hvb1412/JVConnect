@@ -1,11 +1,20 @@
-import express from "express";
-import { getUserProfile, searchUsers } from "../controllers/user.controller.js";
+import express from 'express';
+
+import {
+    getUserById,
+    updateProfile,
+    getUserProfile,
+    searchUsers
+} from '../controllers/user.controller.js';
+
+import authMiddleware from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-// Route: GET /api/users/:id
-// Mô tả: Lấy thông tin hồ sơ của một người dùng theo ID
-router.get("/search", searchUsers);
-router.get("/:id", getUserProfile);
+router.get('/match', searchUsers);
+
+router.put('/profile', authMiddleware, updateProfile);
+
+router.get('/:id', authMiddleware, getUserById);
 
 export default router;
