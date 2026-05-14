@@ -2,13 +2,14 @@ import User from "../models/User.js";
 
 export const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
-            .select('-password -confirmCode');
+        const user = await User.findById(req.params.id).select(
+            "-password -confirmCode",
+        );
 
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found',
+                message: "User not found",
             });
         }
 
@@ -16,7 +17,6 @@ export const getUserById = async (req, res) => {
             success: true,
             data: user,
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -29,13 +29,7 @@ export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const {
-            name,
-            avatarURL,
-            area,
-            occupation,
-            introduction,
-        } = req.body;
+        const { name, avatarURL, area, occupation, introduction } = req.body;
 
         const updatedUser = await User.findByIdAndUpdate(
             userId,
@@ -48,13 +42,13 @@ export const updateProfile = async (req, res) => {
             },
             {
                 new: true,
-            }
-        ).select('-password -confirmCode');
+            },
+        ).select("-password -confirmCode");
 
         if (!updatedUser) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found',
+                message: "User not found",
             });
         }
 
@@ -62,7 +56,6 @@ export const updateProfile = async (req, res) => {
             success: true,
             data: updatedUser,
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -75,21 +68,25 @@ export const getUserProfile = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const user = await User.findById(id).select('-password');
+        const user = await User.findById(id).select("-password");
 
         if (!user) {
-            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+            return res
+                .status(404)
+                .json({ message: "Không tìm thấy người dùng" });
         }
 
         res.status(200).json({
             success: true,
-            data: user
+            data: user,
         });
     } catch (error) {
-        if (error.name === 'CastError') {
-            return res.status(400).json({ message: 'ID người dùng không hợp lệ' });
+        if (error.name === "CastError") {
+            return res
+                .status(400)
+                .json({ message: "ID người dùng không hợp lệ" });
         }
-        res.status(500).json({ message: 'Lỗi Server' });
+        res.status(500).json({ message: "Lỗi Server" });
     }
 };
 
@@ -99,22 +96,22 @@ export const searchUsers = async (req, res) => {
         let query = {};
 
         if (keyword) {
-            query.name = { $regex: keyword, $options: 'i' };
+            query.name = { $regex: keyword, $options: "i" };
         }
         if (area) {
-            query.area = { $regex: area, $options: 'i' };
+            query.area = { $regex: area, $options: "i" };
         }
         if (occupation) {
-            query.occupation = { $regex: occupation, $options: 'i' };
+            query.occupation = { $regex: occupation, $options: "i" };
         }
 
-        const users = await User.find(query).select('-password');
+        const users = await User.find(query).select("-password");
 
         res.status(200).json({
             success: true,
-            data: users
+            data: users,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi Server' });
+        res.status(500).json({ message: "Lỗi Server" });
     }
 };
