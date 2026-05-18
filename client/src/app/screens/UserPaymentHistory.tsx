@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -66,7 +66,7 @@ export function UserPaymentHistory() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <LanguageToggle />
+            <HeaderActions />
             <Button size="icon" variant="ghost">
               <Menu className="h-5 w-5" />
             </Button>

@@ -11,6 +11,8 @@ import {
     CardHeader,
     CardTitle,
 } from "../components/ui/card";
+import { HeaderActions } from "../components/HeaderActions";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Search, Calendar, User, MessageCircle } from "lucide-react";
@@ -28,6 +30,40 @@ export function UserHome() {
         getSuggestedUsers().then(setRecommendedUsers);
         getSuggestedEvents().then(setRecommendedEvents);
     }, []);
+  const visibleRecommendedEvents = recommendedEvents.filter(
+    (event) => !isEventContentHidden(event.title),
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Logo />
+            <nav className="hidden md:flex items-center gap-6">
+              <Link to="/user/home" className="text-blue-600 font-medium">
+                ホーム
+              </Link>
+              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">
+                検索
+              </Link>
+              <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">
+                フレンド
+              </Link>
+              <Link to="/user/events" className="text-gray-600 hover:text-gray-900">
+                イベント
+              </Link>
+              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">
+                マイページ
+              </Link>
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <HeaderActions />
+          </div>
+        </div>
+      </header>
 
     const visibleRecommendedEvents = recommendedEvents.filter(
         (event) => !isEventContentHidden(event.title),

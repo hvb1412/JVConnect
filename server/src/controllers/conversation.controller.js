@@ -178,3 +178,27 @@ export const getConversationMessages = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const markMessagesAsRead = async (req, res) => {
+    try {
+        const userId = getAuthUserId(req);
+        const { id } = req.params;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+
+        await Message.updateMany(
+            {
+                conversation: id,
+                sender: { $ne: userId },
+                seenStatus: false,
+            },
+            { $set: { seenStatus: true } },
+        );
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

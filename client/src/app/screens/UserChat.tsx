@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -16,6 +16,7 @@ import {
     mapMessages,
     UiConversationMessage,
     BackendMessage,
+    markConversationAsRead,
 } from "../lib/conversationApi";
 import { initSocket } from "../lib/socket.ts";
 
@@ -91,6 +92,9 @@ export function UserChat() {
                     online: true,
                 });
                 setMessages(result.messages);
+                
+                // Mark conversation as read since we just opened it
+                markConversationAsRead(result.conversationId);
             } catch (error: any) {
                 setLoadError(
                     error?.response?.data?.message ||
@@ -138,6 +142,9 @@ export function UserChat() {
                 chatUser?.avatar || "",
             )[0];
             setMessages((prev) => [...prev, incomingMessage]);
+
+            // Mark as read since we are currently viewing this conversation
+            markConversationAsRead(incomingConversationId);
         };
 
         socket.on("receive_message", handleReceiveMessage);
@@ -219,7 +226,7 @@ export function UserChat() {
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
-                        <LanguageToggle />
+                        <HeaderActions />
                     </div>
                 </div>
             </header>

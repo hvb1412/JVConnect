@@ -1,5 +1,14 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Landing } from "./screens/Landing";
+
+function RootRedirect() {
+  const token = localStorage.getItem("token");
+  if (!token) return <Navigate to="/guest/login" replace />;
+  const role = localStorage.getItem("role");
+  return role === "admin"
+    ? <Navigate to="/admin/dashboard" replace />
+    : <Navigate to="/user/home" replace />;
+}
 import { GuestLogin } from "./screens/GuestLogin";
 import { GuestRegister } from "./screens/GuestRegister";
 import { GuestPasswordResetGuide } from "./screens/GuestPasswordResetGuide";
@@ -23,7 +32,7 @@ import { AdminReports } from "./screens/AdminReports";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Landing,
+    Component: RootRedirect,
   },
   // Guest App Routes
   {

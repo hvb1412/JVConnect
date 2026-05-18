@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -124,7 +124,7 @@ export function AdminEvents() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <LanguageToggle />
+            <HeaderActions />
           </div>
         </div>
       </header>

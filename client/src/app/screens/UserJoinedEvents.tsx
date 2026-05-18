@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 
@@ -24,7 +24,7 @@ export function UserJoinedEvents() {
               <Link to="/user/mypage">マイページ</Link>
             </nav>
           </div>
-          <LanguageToggle />
+          <HeaderActions />
         </div>
       </header>
 

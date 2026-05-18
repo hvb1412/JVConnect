@@ -11,6 +11,7 @@ export type BackendUser = {
     occupation?: string;
     introduction?: string;
     latestBanDate?: string | null;
+    role?: string;
 };
 
 export type UiUser = {
