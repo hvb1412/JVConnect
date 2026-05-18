@@ -40,6 +40,10 @@ const eventSchema = new mongoose.Schema(
             type: String,
             default: 'active',
         },
+        participants: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+        }]
     },
     {
         timestamps: true,

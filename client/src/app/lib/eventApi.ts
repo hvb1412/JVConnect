@@ -46,6 +46,33 @@ const getAuthHeader = () => {
 
 const FALLBACK_EVENT_IMAGE = "https://images.unsplash.com/photo-1675716921224-e087a0cca69a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080";
 
+
+// phần code của V nhé
+const API_URL = 'http://localhost:5000/events';
+export const getEventById = async (id: string) => {
+  const response = await axios.get(`${API_URL}/${id}`);
+
+  return response.data;
+};
+export const joinEvent = async (id: string) => {
+  const response = await axios.post(`${API_URL}/${id}/join`)
+  return response.data
+}
+export const cancelEvent = async (id: string) => {
+  const response = await axios.post(`${API_URL}/${id}/cancel`)
+  return response.data
+}
+export const reportEvent = async (
+  id: string,
+  reason: string
+) => {
+  const response = await axios.post(
+    `${API_URL}/${id}/report`,
+    { reason }
+  )
+
+  return response.data
+}
 export function mapBackendEventToUi(event: BackendEvent): UiEvent {
     // Lấy YYYY年MM月DD日
     const d = new Date(event.eventDate);

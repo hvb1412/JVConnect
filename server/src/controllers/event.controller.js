@@ -1,4 +1,5 @@
 import Event from '../models/Event.js';
+import Report from '../models/Report.js';
 
 const getAuthUserId = (req) => req.user?.id || req.user?._id || null;
 
@@ -161,3 +162,102 @@ export const getSuggestedEvents = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+
+// Vương thêm code của mình vào đây nhé
+const MAX_PARTICIPANTS = 20
+
+export const joinEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user.id
+
+    const event = await Event.findById(id)
+
+    if (!event) {
+      return res.status(404).json({
+        message: 'Event not found',
+      })
+    }
+
+    const alreadyJoined = event.participants.includes(userId)
+
+    if (alreadyJoined) {
+      return res.status(400).json({
+        message: 'Already joined',
+      })
+    }
+
+    if (event.participants.length >= MAX_PARTICIPANTS) {
+      return res.status(400).json({
+        message: 'Event is full',
+      })
+    }
+
+    event.participants.push(userId)
+
+    await event.save()
+
+    res.json({
+      message: 'Joined successfully',
+      participants: event.participants,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}
+
+export const cancelJoinEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user.id
+
+    const event = await Event.findById(id)
+
+    if (!event) {
+      return res.status(404).json({
+        message: 'Event not found',
+      })
+    }
+
+    event.participants = event.participants.filter(
+      (participantId) => participantId.toString() !== userId
+    )
+
+    await event.save()
+
+    res.json({
+      message: 'Canceled successfully',
+      participants: event.participants,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}
+
+
+export const reportEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body
+
+    const report = await Report.create({
+      event: id,
+      user: req.user.id,
+      reason,
+    })
+
+    res.status(201).json({
+      message: 'Report submitted',
+      report,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}
