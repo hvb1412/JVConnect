@@ -2,6 +2,7 @@ import Conversation from '../models/Conversation.js';
 import Friend from '../models/Friend.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
+import { getIO, getReceiverSocketId } from '../socket.js';
 
 const getAuthUserId = (req) => req.user?.id || req.user?._id || null;
 
@@ -123,6 +124,15 @@ export const sendMessage = async (req, res) => {
         const populatedMessage = await Message.findById(message._id)
             .populate('sender', 'name email avatarURL')
             .populate('conversation', 'user1 user2');
+
+        // Socket: Gửi tin nhắn real-time cho người nhận nếu đang online
+        const receiverSocketId = getReceiverSocketId(String(targetReceiverId));
+        if (receiverSocketId) {
+            getIO().to(receiverSocketId).emit('receive_message', {
+                message: populatedMessage,
+                receiverId: targetReceiverId,
+            });
+        }
 
         return res.status(201).json({
             success: true,

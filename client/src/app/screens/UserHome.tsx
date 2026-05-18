@@ -1,4 +1,7 @@
 import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { getSuggestedUsers, UiUser } from "../lib/userApi";
+import { getSuggestedEvents, UiEvent } from "../lib/eventApi";
 import { Logo } from "../components/Logo";
 import { LanguageToggle } from "../components/LanguageToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -8,60 +11,7 @@ import { Search, Calendar, User, MessageCircle } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { isEventContentHidden } from "../lib/contentModerationStore";
 
-const recommendedUsers = [
-  {
-    id: 1,
-    name: "田中美咲",
-    role: "マーケティングマネージャー",
-    mutualFriends: 6,
-    avatar: "https://images.unsplash.com/photo-1689600944138-da3b150d9cb8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHByb2Zlc3Npb25hbCUyMGhlYWRzaG90fGVufDF8fHx8MTc3NDk0ODUxNHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-  {
-    id: 2,
-    name: "佐藤健太",
-    role: "ソフトウェアエンジニア",
-    mutualFriends: 3,
-    avatar: "https://images.unsplash.com/photo-1622626426572-c268eb006092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBidXNpbmVzcyUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NDk1NTc1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-  {
-    id: 3,
-    name: "鈴木恵美",
-    role: "プロダクトデザイナー",
-    mutualFriends: 9,
-    avatar: "https://images.unsplash.com/photo-1581065178026-390bc4e78dad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMHByb2Zlc3Npb25hbCUyMHdvbWFufGVufDF8fHx8MTc3NDk4ODEyNHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-  {
-    id: 4,
-    name: "高橋大輔",
-    role: "ビジネス開発",
-    mutualFriends: 2,
-    avatar: "https://images.unsplash.com/photo-1524538198441-241ff79d153b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHByb2Zlc3Npb25hbCUyMG1hbnxlbnwxfHx8fDE3NzQ4OTU2ODB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-];
-
-const recommendedEvents = [
-  {
-    id: 1,
-    title: "スタートアップネットワーキング",
-    date: "2026年4月15日",
-    location: "東京",
-    image: "https://images.unsplash.com/photo-1675716921224-e087a0cca69a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwbmV0d29ya2luZ3xlbnwxfHx8fDE3NzQ5ODgxMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-  {
-    id: 2,
-    title: "ビジネステックカンファレンス",
-    date: "2026年4月22日",
-    location: "大阪",
-    image: "https://images.unsplash.com/photo-1765438863717-49fca900f861?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwc2VtaW5hcnxlbnwxfHx8fDE3NzQ5ODgxMjV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-  {
-    id: 3,
-    title: "チームワークショップ",
-    date: "2026年5月5日",
-    location: "京都",
-    image: "https://images.unsplash.com/photo-1649252504727-45c70cffe143?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwd29ya3Nob3AlMjBtZWV0aW5nfGVufDF8fHx8MTc3NDk4ODEyNXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  },
-];
+// removed hardcoded data
 
 const recentChats = [
   {
@@ -92,6 +42,14 @@ const recentChats = [
 ];
 
 export function UserHome() {
+  const [recommendedUsers, setRecommendedUsers] = useState<UiUser[]>([]);
+  const [recommendedEvents, setRecommendedEvents] = useState<UiEvent[]>([]);
+
+  useEffect(() => {
+    getSuggestedUsers().then(setRecommendedUsers);
+    getSuggestedEvents().then(setRecommendedEvents);
+  }, []);
+
   const visibleRecommendedEvents = recommendedEvents.filter(
     (event) => !isEventContentHidden(event.title),
   );
@@ -161,7 +119,7 @@ export function UserHome() {
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold truncate">{user.name}</h3>
                             <p className="text-sm text-gray-600 truncate">{user.role}</p>
-                            <p className="text-xs text-gray-500 mt-1">{user.mutualFriends}人の共通フレンド</p>
+                            <p className="text-xs text-gray-500 mt-1">{user.location}</p>
                             <Button
                               asChild
                               size="sm"
@@ -209,7 +167,7 @@ export function UserHome() {
                             <span>📍 {event.location}</span>
                           </div>
                           <Button asChild size="sm">
-                            <Link to="/user/events">詳細を見る</Link>
+                            <Link to={`/user/events/${event.id}`}>詳細を見る</Link>
                           </Button>
                         </CardContent>
                       </div>

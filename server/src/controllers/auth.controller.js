@@ -24,14 +24,10 @@ export const register = async (req, res) => {
             });
         }
 
-        // Hash mật khẩu
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
         // Tạo user mới
         const newUser = new User({
             email: normalizedEmail,
-            password: hashedPassword,
+            password: password,
             name,
             avatarURL: avatarURL || '',
             role: normalizedRole,
@@ -42,7 +38,7 @@ export const register = async (req, res) => {
         // Tạo JWT token
         const token = jwt.sign(
             { id: newUser._id, email: newUser.email, role: newUser.role },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'jvconnect_secret_key_123456',
             { expiresIn: '7d' }
         );
 
@@ -109,7 +105,7 @@ export const login = async (req, res) => {
 
         const token = jwt.sign(
             { id: user._id, email: user.email, role: resolvedRole },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'jvconnect_secret_key_123456',
             { expiresIn: '7d' }
         );
 
