@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Friend from "../models/Friend.js";
 import jwt from "jsonwebtoken";
 
 const getAuthUserIdFromHeader = (req) => {
@@ -141,22 +142,76 @@ export const searchUsers = async (req, res) => {
 export const getSuggestedUsers = async (req, res) => {
     try {
         const currentUserId = getAuthUserIdFromHeader(req);
-        let query = {};
-        if (currentUserId) {
-            query._id = { $ne: currentUserId };
-        }
-        
-        // Lấy 8 users mới nhất làm đề xuất
-        const users = await User.find(query)
-            .sort({ createdAt: -1 })
-            .limit(8)
-            .select("-password -confirmCode");
+        const LIMIT = 8;
 
-        res.status(200).json({
-            success: true,
-            data: users,
+        // Exclude admins and optionally the current user
+        const query = { role: { $ne: 'admin' } };
+        if (currentUserId) query._id = { $ne: currentUserId };
+
+        // Fetch a reasonable candidate set
+        const users = await User.find(query).select("-password -confirmCode").lean();
+
+        if (!currentUserId) {
+            // If not authenticated, return random users
+            const shuffled = users.sort(() => Math.random() - 0.5).slice(0, LIMIT);
+            return res.status(200).json({ success: true, data: shuffled });
+        }
+
+        // Get current user's friends
+        const friendships = await Friend.find({ $or: [{ user1: currentUserId }, { user2: currentUserId }] });
+        const friendIds = new Set(
+            friendships.map((f) => (String(f.user1) === String(currentUserId) ? String(f.user2) : String(f.user1)))
+        );
+
+        const candidateIds = users.map((u) => String(u._id));
+
+        // Count mutual friendships in bulk
+        const mutualFriendships = await Friend.find({
+            $or: [
+                { user1: { $in: Array.from(friendIds) }, user2: { $in: candidateIds } },
+                { user1: { $in: candidateIds }, user2: { $in: Array.from(friendIds) } },
+            ],
         });
+
+        const mutualCountMap = {};
+        mutualFriendships.forEach((f) => {
+            const u1 = String(f.user1);
+            const u2 = String(f.user2);
+            // candidate is the one that's not in friendIds
+            let candidateId = null;
+            if (friendIds.has(u1) && candidateIds.includes(u2)) candidateId = u2;
+            if (friendIds.has(u2) && candidateIds.includes(u1)) candidateId = u1;
+            if (candidateId) mutualCountMap[candidateId] = (mutualCountMap[candidateId] || 0) + 1;
+        });
+
+        // Score users by mutual friends, then occupation, then area
+        const scored = users.map((u) => {
+            const id = String(u._id);
+            const mutual = mutualCountMap[id] || 0;
+            const occupationMatch = u.occupation && req.query.occupation ? String(u.occupation).toLowerCase() === String(req.query.occupation).toLowerCase() : false;
+            const areaMatch = u.area && req.query.area ? String(u.area).toLowerCase() === String(req.query.area).toLowerCase() : false;
+            return { user: u, mutual, occupationMatch: occupationMatch ? 1 : 0, areaMatch: areaMatch ? 1 : 0 };
+        });
+
+        scored.sort((a, b) => {
+            if (b.mutual !== a.mutual) return b.mutual - a.mutual;
+            if (b.occupationMatch !== a.occupationMatch) return b.occupationMatch - a.occupationMatch;
+            if (b.areaMatch !== a.areaMatch) return b.areaMatch - a.areaMatch;
+            return 0;
+        });
+
+        // If all scores are zero, return random
+        const topScore = scored.length > 0 ? (scored[0].mutual + scored[0].occupationMatch + scored[0].areaMatch) : 0;
+        let result;
+        if (topScore === 0) {
+            result = scored.map((s) => s.user).sort(() => Math.random() - 0.5).slice(0, LIMIT);
+        } else {
+            result = scored.slice(0, LIMIT).map((s) => s.user);
+        }
+
+        res.status(200).json({ success: true, data: result });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: "Lỗi Server" });
     }
 };

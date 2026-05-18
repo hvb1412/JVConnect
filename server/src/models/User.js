@@ -48,6 +48,14 @@ const userSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        isRestricted: {
+            type: Boolean,
+            default: false,
+        },
+        restrictedUntil: {
+            type: Date,
+            default: null,
+        },
     },
     {
         timestamps: true,

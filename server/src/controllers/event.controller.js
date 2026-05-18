@@ -1,7 +1,22 @@
 import Event from '../models/Event.js';
 import Report from '../models/Report.js';
+import Friend from '../models/Friend.js';
+import jwt from 'jsonwebtoken';
 
 const getAuthUserId = (req) => req.user?.id || req.user?._id || null;
+
+const getAuthUserIdFromHeader = (req) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return null;
+    const token = authHeader.split(' ')[1];
+    if (!token) return null;
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded?.id || decoded?.userId || null;
+    } catch {
+        return null;
+    }
+};
 
 const validateEventPayload = (payload) => {
     const errors = [];
@@ -30,7 +45,7 @@ const canManageEvent = (req, event) => {
 
 export const listEvents = async (req, res) => {
     try {
-        const events = await Event.find()
+        const events = await Event.find({ status: 'active' })
             .populate('organizer', 'name email avatarURL role')
             .sort({ createdAt: -1 });
 
@@ -44,7 +59,7 @@ export const getEventById = async (req, res) => {
     try {
         const event = await Event.findById(req.params.id).populate('organizer', 'name email avatarURL role');
 
-        if (!event) {
+        if (!event || event.status !== 'active') {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
