@@ -1,4 +1,21 @@
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
+
+const getAuthUserIdFromHeader = (req) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) return null;
+
+    const token = authHeader.split(" ")[1];
+    if (!token) return null;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded?.id || decoded?.userId || null;
+    } catch {
+        return null;
+    }
+};
 
 export const getUserById = async (req, res) => {
     try {
@@ -93,6 +110,7 @@ export const getUserProfile = async (req, res) => {
 export const searchUsers = async (req, res) => {
     try {
         const { keyword, area, occupation } = req.query;
+        const currentUserId = getAuthUserIdFromHeader(req);
         let query = {};
 
         if (keyword) {
@@ -105,7 +123,11 @@ export const searchUsers = async (req, res) => {
             query.occupation = { $regex: occupation, $options: "i" };
         }
 
-        const users = await User.find(query).select("-password");
+        if (currentUserId) {
+            query._id = { $ne: currentUserId };
+        }
+
+        const users = await User.find(query).select("-password -confirmCode");
 
         res.status(200).json({
             success: true,
