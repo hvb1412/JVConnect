@@ -2,8 +2,11 @@ import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { getSuggestedUsers, UiUser } from "../lib/userApi";
 import { getSuggestedEvents, UiEvent } from "../lib/eventApi";
+
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
+import ChatList from "../components/ChatList";
+
 import {
     Card,
     CardContent,
@@ -11,16 +14,14 @@ import {
     CardHeader,
     CardTitle,
 } from "../components/ui/card";
-import { HeaderActions } from "../components/HeaderActions";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
-import { Search, Calendar, User, MessageCircle } from "lucide-react";
-import { Badge } from "../components/ui/badge";
-import { isEventContentHidden } from "../lib/contentModerationStore";
-import ChatList from "../components/ChatList";
 
-// recent chats replaced by ChatList component
+import { Button } from "../components/ui/button";
+
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+
+import { Search, Calendar, User } from "lucide-react";
+
+import { isEventContentHidden } from "../lib/contentModerationStore";
 
 export function UserHome() {
     const [recommendedUsers, setRecommendedUsers] = useState<UiUser[]>([]);
@@ -30,40 +31,6 @@ export function UserHome() {
         getSuggestedUsers().then(setRecommendedUsers);
         getSuggestedEvents().then(setRecommendedEvents);
     }, []);
-  const visibleRecommendedEvents = recommendedEvents.filter(
-    (event) => !isEventContentHidden(event.title),
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Logo />
-            <nav className="hidden md:flex items-center gap-6">
-              <Link to="/user/home" className="text-blue-600 font-medium">
-                ホーム
-              </Link>
-              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">
-                検索
-              </Link>
-              <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">
-                フレンド
-              </Link>
-              <Link to="/user/events" className="text-gray-600 hover:text-gray-900">
-                イベント
-              </Link>
-              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">
-                マイページ
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <HeaderActions />
-          </div>
-        </div>
-      </header>
 
     const visibleRecommendedEvents = recommendedEvents.filter(
         (event) => !isEventContentHidden(event.title),
@@ -76,6 +43,7 @@ export function UserHome() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
+
                         <nav className="hidden md:flex items-center gap-6">
                             <Link
                                 to="/user/home"
@@ -83,24 +51,28 @@ export function UserHome() {
                             >
                                 ホーム
                             </Link>
+
                             <Link
                                 to="/user/search"
                                 className="text-gray-600 hover:text-gray-900"
                             >
                                 検索
                             </Link>
+
                             <Link
                                 to="/user/friends"
                                 className="text-gray-600 hover:text-gray-900"
                             >
                                 フレンド
                             </Link>
+
                             <Link
                                 to="/user/events"
                                 className="text-gray-600 hover:text-gray-900"
                             >
                                 イベント
                             </Link>
+
                             <Link
                                 to="/user/mypage"
                                 className="text-gray-600 hover:text-gray-900"
@@ -109,8 +81,9 @@ export function UserHome() {
                             </Link>
                         </nav>
                     </div>
+
                     <div className="flex items-center gap-4">
-                        <LanguageToggle />
+                        <HeaderActions />
                     </div>
                 </div>
             </header>
@@ -118,14 +91,15 @@ export function UserHome() {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Left Column - Main Content */}
+                    {/* Left Column */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Welcome Banner */}
+                        {/* Welcome */}
                         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                             <CardHeader>
                                 <CardTitle className="text-white">
                                     おかえりなさい！
                                 </CardTitle>
+
                                 <CardDescription className="text-blue-100">
                                     今日も新しい出会いを見つけましょう
                                 </CardDescription>
@@ -136,10 +110,12 @@ export function UserHome() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>おすすめのユーザー</CardTitle>
+
                                 <CardDescription>
                                     あなたにぴったりのビジネスパートナー
                                 </CardDescription>
                             </CardHeader>
+
                             <CardContent>
                                 <div className="grid md:grid-cols-2 gap-4">
                                     {recommendedUsers.map((user) => (
@@ -153,20 +129,25 @@ export function UserHome() {
                                                         <AvatarImage
                                                             src={user.avatar}
                                                         />
+
                                                         <AvatarFallback>
                                                             {user.name[0]}
                                                         </AvatarFallback>
                                                     </Avatar>
+
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold truncate">
                                                             {user.name}
                                                         </h3>
+
                                                         <p className="text-sm text-gray-600 truncate">
                                                             {user.role}
                                                         </p>
+
                                                         <p className="text-xs text-gray-500 mt-1">
                                                             {user.location}
                                                         </p>
+
                                                         <Button
                                                             asChild
                                                             size="sm"
@@ -192,10 +173,12 @@ export function UserHome() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>おすすめのイベント</CardTitle>
+
                                 <CardDescription>
                                     参加してネットワークを広げましょう
                                 </CardDescription>
                             </CardHeader>
+
                             <CardContent>
                                 <div className="space-y-4">
                                     {visibleRecommendedEvents.map((event) => (
@@ -211,21 +194,25 @@ export function UserHome() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
+
                                                 <CardContent className="flex-1 p-4">
                                                     <h3 className="font-semibold mb-2">
                                                         {event.title}
                                                     </h3>
+
                                                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                                                         <Calendar className="h-4 w-4" />
                                                         <span>
                                                             {event.date}
                                                         </span>
                                                     </div>
+
                                                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                                                         <span>
                                                             📍 {event.location}
                                                         </span>
                                                     </div>
+
                                                     <Button asChild size="sm">
                                                         <Link
                                                             to={`/user/events/${event.id}`}
@@ -237,12 +224,14 @@ export function UserHome() {
                                             </div>
                                         </Card>
                                     ))}
+
                                     {visibleRecommendedEvents.length === 0 && (
                                         <p className="text-sm text-gray-600">
                                             表示できるおすすめイベントは現在ありません。
                                         </p>
                                     )}
                                 </div>
+
                                 <Button
                                     asChild
                                     variant="outline"
@@ -256,13 +245,14 @@ export function UserHome() {
                         </Card>
                     </div>
 
-                    {/* Right Column - Sidebar */}
+                    {/* Right Sidebar */}
                     <div className="space-y-6">
                         {/* Quick Actions */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>クイックアクション</CardTitle>
                             </CardHeader>
+
                             <CardContent className="space-y-2">
                                 <Button
                                     asChild
@@ -274,6 +264,7 @@ export function UserHome() {
                                         検索へ
                                     </Link>
                                 </Button>
+
                                 <Button
                                     asChild
                                     variant="outline"
@@ -284,6 +275,7 @@ export function UserHome() {
                                         フレンド一覧へ
                                     </Link>
                                 </Button>
+
                                 <Button
                                     asChild
                                     variant="outline"
@@ -294,6 +286,7 @@ export function UserHome() {
                                         イベント一覧へ
                                     </Link>
                                 </Button>
+
                                 <Button
                                     asChild
                                     variant="outline"
@@ -312,6 +305,7 @@ export function UserHome() {
                             <CardHeader>
                                 <CardTitle>最近のチャット</CardTitle>
                             </CardHeader>
+
                             <CardContent className="space-y-3">
                                 <ChatList />
                             </CardContent>
