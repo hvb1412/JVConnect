@@ -100,6 +100,20 @@ export async function searchUsers(params: {
         .map(mapBackendUserToUi);
 }
 
+export async function getSuggestedUsers(): Promise<UiUser[]> {
+    try {
+        const response = await api.get<ApiResponse<BackendUser[]>>("/users/suggested", {
+            headers: getAuthHeader(),
+        });
+
+        const users = Array.isArray(response.data?.data) ? response.data.data : [];
+        return users.map(mapBackendUserToUi);
+    } catch (error) {
+        console.error("Failed to fetch suggested users", error);
+        return [];
+    }
+}
+
 export async function getUserProfile(id: string): Promise<UiUser> {
     const response = await api.get<ApiResponse<BackendUser>>(`/users/${id}`, {
         headers: getAuthHeader(),
