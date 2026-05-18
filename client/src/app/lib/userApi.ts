@@ -82,10 +82,22 @@ export async function searchUsers(params: {
 }): Promise<UiUser[]> {
     const response = await api.get<ApiResponse<BackendUser[]>>("/users/match", {
         params,
+        headers: getAuthHeader(),
     });
 
     const users = Array.isArray(response.data?.data) ? response.data.data : [];
-    return users.map(mapBackendUserToUi);
+    const currentUserRaw = localStorage.getItem("user");
+    const currentUserId = currentUserRaw ? (() => {
+        try {
+            return JSON.parse(currentUserRaw)?._id ?? JSON.parse(currentUserRaw)?.id ?? null;
+        } catch {
+            return null;
+        }
+    })() : null;
+
+    return users
+        .filter((user) => !currentUserId || user._id !== currentUserId)
+        .map(mapBackendUserToUi);
 }
 
 export async function getUserProfile(id: string): Promise<UiUser> {

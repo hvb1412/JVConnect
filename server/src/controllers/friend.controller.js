@@ -31,9 +31,19 @@ export const getFriendList = async (req, res) => {
 
                 const friend = String(user1._id) === String(userId) ? user2 : user1;
 
+                // Never return the current user even if the friendship record is malformed
+                if (!friend || String(friend._id) === String(userId)) {
+                    return null;
+                }
+
                 return { friendshipId: friendship._id, friend };
             })
-            .filter(Boolean);
+            .filter(Boolean)
+            .filter((item, index, array) => {
+                const friendId = String(item.friend._id);
+                return array.findIndex((candidate) => String(candidate.friend._id) === friendId) === index;
+            })
+            ;
 
         return res.status(200).json({ success: true, data });
     } catch (error) {

@@ -24,10 +24,10 @@ const connectDB = async () => {
 };
 
 const users = [
-    { email: 'admin@jvconnect.com', password: 'password123', name: 'Admin JVConnect', area: 'Hà Nội', occupation: 'Software Engineer', introduction: 'Quản trị viên hệ thống JVConnect.' },
-    { email: 'BHV@jvconnect.com', password: 'password123', name: 'Hoàng Văn Bình', area: 'Hải Phòng', occupation: 'Sinh viên', introduction: 'Xin chào, mình đang học ITSS.' },
-    { email: 'VNTK2@jvconnect.com', password: 'password123', name: 'Nguyễn Thị Khánh Vân', area: 'Bắc Ninh', occupation: 'Designer', introduction: 'Thiết kế đồ họa tự do.' },
-    { email: 'BLT3@jvconnect.com', password: 'password123', name: 'Lê Thái Bảo', area: 'Hải Phòng', occupation: 'Freelancer', introduction: 'Rất vui được làm quen.' }
+    { email: 'admin@jvconnect.com', password: 'password123', name: 'Admin JVConnect', area: 'Hà Nội', occupation: 'Software Engineer', introduction: 'Quản trị viên hệ thống JVConnect.', role: 'admin' },
+    { email: 'BHV@jvconnect.com', password: 'password123', name: 'Hoàng Văn Bình', area: 'Hải Phòng', occupation: 'Sinh viên', introduction: 'Xin chào, mình đang học ITSS.', role: 'user' },
+    { email: 'VNTK2@jvconnect.com', password: 'password123', name: 'Nguyễn Thị Khánh Vân', area: 'Bắc Ninh', occupation: 'Designer', introduction: 'Thiết kế đồ họa tự do.', role: 'user' },
+    { email: 'BLT3@jvconnect.com', password: 'password123', name: 'Lê Thái Bảo', area: 'Hải Phòng', occupation: 'Freelancer', introduction: 'Rất vui được làm quen.', role: 'user' }
 ];
 
 const seedData = async () => {
