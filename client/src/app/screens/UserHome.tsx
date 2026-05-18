@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { getSuggestedUsers, UiUser } from "../lib/userApi";
 import { getSuggestedEvents, UiEvent } from "../lib/eventApi";
+import { getConversations, UiConversation } from "../lib/conversationApi";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -11,43 +12,15 @@ import { Search, Calendar, User, MessageCircle } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { isEventContentHidden } from "../lib/contentModerationStore";
 
-// removed hardcoded data
-
-const recentChats = [
-  {
-    id: 1,
-    name: "田中美咲",
-    lastMessage: "ありがとうございます！",
-    time: "10分前",
-    avatar: "https://images.unsplash.com/photo-1689600944138-da3b150d9cb8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHByb2Zlc3Npb25hbCUyMGhlYWRzaG90fGVufDF8fHx8MTc3NDk0ODUxNHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    unread: 2,
-  },
-  {
-    id: 2,
-    name: "開発者グループ",
-    lastMessage: "明日のミーティングは...",
-    time: "1時間前",
-    avatar: null,
-    isGroup: true,
-    unread: 0,
-  },
-  {
-    id: 3,
-    name: "佐藤健太",
-    lastMessage: "了解しました",
-    time: "3時間前",
-    avatar: "https://images.unsplash.com/photo-1622626426572-c268eb006092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBidXNpbmVzcyUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NDk1NTc1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    unread: 0,
-  },
-];
-
 export function UserHome() {
   const [recommendedUsers, setRecommendedUsers] = useState<UiUser[]>([]);
   const [recommendedEvents, setRecommendedEvents] = useState<UiEvent[]>([]);
+  const [recentChats, setRecentChats] = useState<UiConversation[]>([]);
 
   useEffect(() => {
     getSuggestedUsers().then(setRecommendedUsers);
     getSuggestedEvents().then(setRecommendedEvents);
+    getConversations().then((data) => setRecentChats(data.slice(0, 3)));
   }, []);
 
   const visibleRecommendedEvents = recommendedEvents.filter(
@@ -229,37 +202,43 @@ export function UserHome() {
                 <CardTitle>最近のチャット</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {recentChats.map((chat) => (
-                  <Link
-                    key={chat.id}
-                    to={`/user/chat/${chat.id}`}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Avatar className="h-10 w-10">
-                      {chat.avatar ? (
-                        <AvatarImage src={chat.avatar} />
-                      ) : (
-                        <AvatarFallback>
-                          {chat.isGroup ? "👥" : chat.name[0]}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-sm truncate">{chat.name}</p>
-                        {chat.unread > 0 && (
-                          <Badge variant="destructive" className="ml-2">
-                            {chat.unread}
-                          </Badge>
+                {recentChats.length === 0 ? (
+                  <p className="text-sm text-gray-600 py-2">
+                    最近のチャットはありません。
+                  </p>
+                ) : (
+                  recentChats.map((chat) => (
+                    <Link
+                      key={chat.id}
+                      to={`/user/chat/${chat.id}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <Avatar className="h-10 w-10">
+                        {chat.avatar ? (
+                          <AvatarImage src={chat.avatar} />
+                        ) : (
+                          <AvatarFallback>
+                            {chat.name[0]}
+                          </AvatarFallback>
                         )}
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm truncate">{chat.name}</p>
+                          {chat.unread > 0 && (
+                            <Badge variant="destructive" className="ml-2">
+                              {chat.unread}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 truncate">
+                          {chat.lastMessage}
+                        </p>
+                        <p className="text-xs text-gray-400">{chat.time}</p>
                       </div>
-                      <p className="text-xs text-gray-600 truncate">
-                        {chat.lastMessage}
-                      </p>
-                      <p className="text-xs text-gray-400">{chat.time}</p>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))
+                )}
                 <Button asChild variant="ghost" className="w-full" size="sm">
                   <Link to="/user/chats" className="inline-flex w-full items-center justify-center">
                     <MessageCircle className="mr-2 h-4 w-4" />

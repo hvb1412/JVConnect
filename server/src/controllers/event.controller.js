@@ -180,7 +180,9 @@ export const joinEvent = async (req, res) => {
       })
     }
 
-    const alreadyJoined = event.participants.includes(userId)
+    const alreadyJoined = event.participants.some(
+      (participantId) => participantId.toString() === userId
+    )
 
     if (alreadyJoined) {
       return res.status(400).json({

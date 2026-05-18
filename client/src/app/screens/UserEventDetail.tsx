@@ -34,6 +34,9 @@ export function UserEventDetail() {
         const data = await getEventById(id);
 
         setEvent(data);
+        if (data) {
+          setJoined(data.isJoined);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -131,13 +134,14 @@ export function UserEventDetail() {
                       await joinEvent(event._id);
 
                       setJoined(true);
-
                       setEvent({
                         ...event,
                         participants: event.participants + 1,
                       });
+                      alert("イベントに参加しました。");
                     } catch (error) {
                       console.error(error);
+                      alert("エラーが発生しました。もう一度お試しください。");
                     }
                   }}
                 >
@@ -151,13 +155,14 @@ export function UserEventDetail() {
                       await cancelEvent(event._id);
 
                       setJoined(false);
-
                       setEvent({
                         ...event,
                         participants: event.participants - 1,
                       });
+                      alert("参加をキャンセルしました。");
                     } catch (error) {
                       console.error(error);
+                      alert("エラーが発生しました。もう一度お試しください。");
                     }
                   }}
                 >
@@ -231,10 +236,11 @@ export function UserEventDetail() {
                   );
 
                   setReportOpen(false);
-
                   setDetail("");
+                  alert("イベントを通報しました。");
                 } catch (error) {
                   console.error(error);
+                  alert("エラーが発生しました。もう一度お試しください。");
                 }
               }}
             >

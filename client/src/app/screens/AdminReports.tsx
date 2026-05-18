@@ -303,11 +303,11 @@ export function AdminReports() {
                     prev.map((item) =>
                       item.id === approving.id
                         ? {
-                            ...item,
-                            status: "処理済み",
-                            result: "承認",
-                            banDays: item.type === "ユーザー" ? days : undefined,
-                          }
+                          ...item,
+                          status: "処理済み",
+                          result: "承認",
+                          banDays: item.type === "ユーザー" ? days : undefined,
+                        }
                         : item,
                     ),
                   );
