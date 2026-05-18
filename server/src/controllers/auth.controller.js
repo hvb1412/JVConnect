@@ -5,8 +5,10 @@ import jwt from 'jsonwebtoken';
 export const register = async (req, res) => {
     try {
         const { email, password, name, avatarURL } = req.body;
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const normalizedRole = 'user';
 
-        if (!email || !password || !name) {
+        if (!normalizedEmail || !password || !name) {
             return res.status(400).json({
                 success: false,
                 message: 'Vui lòng cung cấp đầy đủ email, mật khẩu và tên',
@@ -14,7 +16,7 @@ export const register = async (req, res) => {
         }
 
         // Kiểm tra xem email đã tồn tại chưa
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -28,17 +30,18 @@ export const register = async (req, res) => {
 
         // Tạo user mới
         const newUser = new User({
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
             name,
             avatarURL: avatarURL || '',
+            role: normalizedRole,
         });
 
         await newUser.save();
 
         // Tạo JWT token
         const token = jwt.sign(
-            { id: newUser._id, email: newUser.email },
+            { id: newUser._id, email: newUser.email, role: newUser.role },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -66,8 +69,9 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = String(email || '').trim().toLowerCase();
 
-        if (!email || !password) {
+        if (!normalizedEmail || !password) {
             return res.status(400).json({
                 success: false,
                 message: 'Vui lòng cung cấp email và mật khẩu',
@@ -75,7 +79,7 @@ export const login = async (req, res) => {
         }
 
         // Tìm user theo email
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -101,8 +105,10 @@ export const login = async (req, res) => {
         }
 
         // Tạo JWT token
+        const resolvedRole = user.role || (user.email === 'admin@jvconnect.com' ? 'admin' : 'user');
+
         const token = jwt.sign(
-            { id: user._id, email: user.email },
+            { id: user._id, email: user.email, role: resolvedRole },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
@@ -114,7 +120,7 @@ export const login = async (req, res) => {
         return res.status(200).json({
             success: true,
             data: {
-                user: userWithoutPassword,
+                user: { ...userWithoutPassword, role: resolvedRole },
                 token,
             },
         });
