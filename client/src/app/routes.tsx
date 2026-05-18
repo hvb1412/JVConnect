@@ -3,7 +3,11 @@ import { Landing } from "./screens/Landing";
 
 function RootRedirect() {
   const token = localStorage.getItem("token");
-  return token ? <Navigate to="/user/home" replace /> : <Navigate to="/guest/login" replace />;
+  if (!token) return <Navigate to="/guest/login" replace />;
+  const role = localStorage.getItem("role");
+  return role === "admin"
+    ? <Navigate to="/admin/dashboard" replace />
+    : <Navigate to="/user/home" replace />;
 }
 import { GuestLogin } from "./screens/GuestLogin";
 import { GuestRegister } from "./screens/GuestRegister";

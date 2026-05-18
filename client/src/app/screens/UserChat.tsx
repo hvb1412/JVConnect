@@ -16,6 +16,7 @@ import {
     mapMessages,
     UiConversationMessage,
     BackendMessage,
+    markConversationAsRead,
 } from "../lib/conversationApi";
 import { initSocket } from "../lib/socket";
 
@@ -91,6 +92,9 @@ export function UserChat() {
                     online: true,
                 });
                 setMessages(result.messages);
+                
+                // Mark conversation as read since we just opened it
+                markConversationAsRead(result.conversationId);
             } catch (error: any) {
                 setLoadError(
                     error?.response?.data?.message ||
@@ -135,6 +139,9 @@ export function UserChat() {
                 chatUser?.avatar || "",
             )[0];
             setMessages((prev) => [...prev, incomingMessage]);
+
+            // Mark as read since we are currently viewing this conversation
+            markConversationAsRead(incomingConversationId);
         };
 
         socket.on("receive_message", handleReceiveMessage);

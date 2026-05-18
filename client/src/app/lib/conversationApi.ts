@@ -14,6 +14,7 @@ export type BackendMessage = {
     sendTime: string;
     createdAt: string;
     seenStatus?: boolean;
+    conversation?: { _id: string };
 };
 
 export type BackendConversationSummary = {
@@ -208,4 +209,14 @@ export async function getConversationMessages(
         conversationId: conversation._id,
         messages: mapMessages(detail.messages, currentUserId, avatar),
     };
+}
+
+export async function markConversationAsRead(conversationId: string): Promise<void> {
+    try {
+        await api.patch(`/conversations/${conversationId}/read`, {}, {
+            headers: getAuthHeader(),
+        });
+    } catch {
+        // Non-critical: silently ignore errors
+    }
 }
