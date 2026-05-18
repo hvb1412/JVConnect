@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import {
     Card,
     CardContent,
@@ -132,7 +132,7 @@ export function UserMyPage() {
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
-                        <LanguageToggle />
+                        <HeaderActions />
                     </div>
                 </div>
             </header>

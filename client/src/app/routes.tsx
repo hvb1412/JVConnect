@@ -1,5 +1,10 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Landing } from "./screens/Landing";
+
+function RootRedirect() {
+  const token = localStorage.getItem("token");
+  return token ? <Navigate to="/user/home" replace /> : <Navigate to="/guest/login" replace />;
+}
 import { GuestLogin } from "./screens/GuestLogin";
 import { GuestRegister } from "./screens/GuestRegister";
 import { GuestPasswordResetGuide } from "./screens/GuestPasswordResetGuide";
@@ -23,7 +28,7 @@ import { AdminReports } from "./screens/AdminReports";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: Landing,
+    Component: RootRedirect,
   },
   // Guest App Routes
   {

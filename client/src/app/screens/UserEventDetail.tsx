@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router";
 import { useMemo, useState } from "react";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
@@ -52,7 +52,7 @@ export function UserEventDetail() {
               <Link to="/user/mypage">マイページ</Link>
             </nav>
           </div>
-          <LanguageToggle />
+          <HeaderActions />
         </div>
       </header>
 

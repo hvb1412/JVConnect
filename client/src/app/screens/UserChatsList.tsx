@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
@@ -80,7 +80,7 @@ export function UserChatsList() {
               </Link>
             </nav>
           </div>
-          <LanguageToggle />
+          <HeaderActions />
         </div>
       </header>
 
