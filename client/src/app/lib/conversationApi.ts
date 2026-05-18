@@ -121,7 +121,11 @@ export async function sendMessage(
     currentUserId: string,
     partnerAvatar: string,
 ): Promise<UiConversationMessage> {
-    const payload: { conversationId?: string; receiverId?: string; content: string } = {
+    const payload: {
+        conversationId?: string;
+        receiverId?: string;
+        content: string;
+    } = {
         content,
     };
 

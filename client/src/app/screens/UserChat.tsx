@@ -17,7 +17,7 @@ import {
     UiConversationMessage,
     BackendMessage,
 } from "../lib/conversationApi";
-import { initSocket } from "../lib/socket";
+import { initSocket } from "../lib/socket.ts";
 
 export function UserChat() {
     const { id } = useParams();
@@ -125,7 +125,10 @@ export function UserChat() {
             }
 
             const incomingConversationId = payload.message.conversation?._id;
-            if (!incomingConversationId || incomingConversationId !== conversationId) {
+            if (
+                !incomingConversationId ||
+                incomingConversationId !== conversationId
+            ) {
                 return;
             }
 
@@ -372,7 +375,9 @@ export function UserChat() {
                             <Button
                                 size="icon"
                                 className="flex-shrink-0"
-                                disabled={!isFriend || !message.trim() || sending}
+                                disabled={
+                                    !isFriend || !message.trim() || sending
+                                }
                                 onClick={handleSendMessage}
                             >
                                 <Send className="h-4 w-4" />
