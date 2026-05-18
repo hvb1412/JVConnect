@@ -113,7 +113,7 @@ export const updateEvent = async (req, res) => {
         });
 
         const updatedEvent = await Event.findByIdAndUpdate(req.params.id, nextPayload, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true,
         }).populate('organizer', 'name email avatarURL role');
 
@@ -137,6 +137,26 @@ export const deleteEvent = async (req, res) => {
         await Event.findByIdAndDelete(req.params.id);
 
         return res.status(200).json({ success: true, message: 'Event deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getSuggestedEvents = async (req, res) => {
+    try {
+        const events = await Event.find({ status: 'active', eventDate: { $gte: new Date() } })
+            .sort({ eventDate: 1 })
+            .limit(5)
+            .populate('organizer', 'name email avatarURL role');
+
+        if (events.length === 0) {
+             const anyEvents = await Event.find({ status: 'active' })
+                 .sort({ eventDate: -1 })
+                 .limit(5)
+                 .populate('organizer', 'name email avatarURL role');
+             return res.status(200).json({ success: true, data: anyEvents });
+        }
+        return res.status(200).json({ success: true, data: events });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

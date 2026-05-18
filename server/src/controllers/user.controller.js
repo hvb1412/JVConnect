@@ -58,7 +58,7 @@ export const updateProfile = async (req, res) => {
                 introduction,
             },
             {
-                new: true,
+                returnDocument: 'after',
             },
         ).select("-password -confirmCode");
 
@@ -135,5 +135,28 @@ export const searchUsers = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: "Lỗi Server" });
+    }
+};
+
+export const getSuggestedUsers = async (req, res) => {
+    try {
+        const currentUserId = getAuthUserIdFromHeader(req);
+        let query = {};
+        if (currentUserId) {
+            query._id = { $ne: currentUserId };
+        }
+        
+        // Lấy 8 users mới nhất làm đề xuất
+        const users = await User.find(query)
+            .sort({ createdAt: -1 })
+            .limit(8)
+            .select("-password -confirmCode");
+
+        res.status(200).json({
+            success: true,
+            data: users,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Lỗi Server" });
     }
 };
