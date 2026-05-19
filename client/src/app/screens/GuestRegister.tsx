@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { LanguageToggle } from "../components/LanguageToggle";
@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Mail, Lock, User, Upload } from "lucide-react";
 import { registerUser } from "../lib/authApi";
+import { uploadImageByUrl } from "../lib/uploadApi";
 
 export function GuestRegister() {
   const navigate = useNavigate();
@@ -17,6 +18,45 @@ export function GuestRegister() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registerError, setRegisterError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleSelectAvatar = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("ファイルサイズは5MB以内にしてください。");
+      return;
+    }
+
+    setAvatarError("");
+    setIsUploading(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageByUrl(dataUrl);
+      setAvatarUrl(result.secure_url);
+      setAvatarPreview(result.secure_url);
+    } catch (error: any) {
+      setAvatarError(error?.message || "アップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password) {
@@ -32,7 +72,7 @@ export function GuestRegister() {
     try {
       setIsLoading(true);
       setRegisterError("");
-      const result = await registerUser(name, email, password);
+      const result = await registerUser(name, email, password, avatarUrl);
       
       // Auto login after registration
       localStorage.setItem("token", result.token);
@@ -154,21 +194,44 @@ export function GuestRegister() {
 
                 <div className="space-y-2">
                   <Label htmlFor="avatar">プロフィール画像</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      クリックしてアップロード
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      PNG, JPG, GIF (最大 5MB)
-                    </p>
-                  </div>
+                  <input
+                    ref={fileInputRef}
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSelectAvatar}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors"
+                  >
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar preview"
+                        className="mx-auto h-36 w-36 rounded-full object-cover"
+                      />
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {isUploading ? "アップロード中..." : "クリックしてアップロード"}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          PNG, JPG, GIF (最大 5MB)
+                        </p>
+                      </>
+                    )}
+                  </button>
+                  {avatarError && <p className="text-xs text-red-600">{avatarError}</p>}
                 </div>
 
                 {registerError && <p className="text-sm text-red-600">{registerError}</p>}
 
                 <div className="space-y-3 pt-2">
-                  <Button className="w-full" size="lg" onClick={handleRegister} disabled={isLoading}>
+                  <Button className="w-full" size="lg" onClick={handleRegister} disabled={isLoading || isUploading}>
                     {isLoading ? "登録中..." : "登録"}
                   </Button>
                   <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>

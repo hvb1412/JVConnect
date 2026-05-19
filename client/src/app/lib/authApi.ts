@@ -34,9 +34,19 @@ export async function loginUser(email: string, password: string): Promise<{ user
     }
 }
 
-export async function registerUser(name: string, email: string, password: string): Promise<{ user: UiUser, token: string }> {
+export async function registerUser(
+    name: string,
+    email: string,
+    password: string,
+    avatarURL?: string,
+): Promise<{ user: UiUser, token: string }> {
     try {
-        const response = await api.post<AuthResponse>("/auth/register", { name, email, password });
+        const response = await api.post<AuthResponse>("/auth/register", {
+            name,
+            email,
+            password,
+            avatarURL,
+        });
         if (response.data.success && response.data.data) {
             return {
                 user: mapBackendUserToUi(response.data.data.user),
