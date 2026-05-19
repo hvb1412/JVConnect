@@ -61,11 +61,17 @@ export function GuestLogin() {
       setLoginError("");
       const result = await loginUser(email, password);
       
-      // Store token and userId
+      // Store token, userId, and role
       localStorage.setItem("token", result.token);
       localStorage.setItem("userId", result.user.id);
+      localStorage.setItem("role", result.role);
       
-      navigate("/user/home");
+      // Redirect based on role
+      if (result.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/user/home");
+      }
     } catch (error: any) {
       setLoginError(error.message || "メールアドレスまたはパスワードが正しくありません。");
     } finally {

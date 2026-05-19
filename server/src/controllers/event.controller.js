@@ -1,6 +1,22 @@
 import Event from '../models/Event.js';
+import Report from '../models/Report.js';
+import Friend from '../models/Friend.js';
+import jwt from 'jsonwebtoken';
 
 const getAuthUserId = (req) => req.user?.id || req.user?._id || null;
+
+const getAuthUserIdFromHeader = (req) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return null;
+    const token = authHeader.split(' ')[1];
+    if (!token) return null;
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return decoded?.id || decoded?.userId || null;
+    } catch {
+        return null;
+    }
+};
 
 const validateEventPayload = (payload) => {
     const errors = [];
@@ -29,7 +45,7 @@ const canManageEvent = (req, event) => {
 
 export const listEvents = async (req, res) => {
     try {
-        const events = await Event.find()
+        const events = await Event.find({ status: 'active' })
             .populate('organizer', 'name email avatarURL role')
             .sort({ createdAt: -1 });
 
@@ -43,7 +59,7 @@ export const getEventById = async (req, res) => {
     try {
         const event = await Event.findById(req.params.id).populate('organizer', 'name email avatarURL role');
 
-        if (!event) {
+        if (!event || event.status !== 'active') {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
@@ -113,7 +129,7 @@ export const updateEvent = async (req, res) => {
         });
 
         const updatedEvent = await Event.findByIdAndUpdate(req.params.id, nextPayload, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true,
         }).populate('organizer', 'name email avatarURL role');
 
@@ -141,3 +157,124 @@ export const deleteEvent = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const getSuggestedEvents = async (req, res) => {
+    try {
+        const events = await Event.find({ status: 'active', eventDate: { $gte: new Date() } })
+            .sort({ eventDate: 1 })
+            .limit(5)
+            .populate('organizer', 'name email avatarURL role');
+
+        if (events.length === 0) {
+             const anyEvents = await Event.find({ status: 'active' })
+                 .sort({ eventDate: -1 })
+                 .limit(5)
+                 .populate('organizer', 'name email avatarURL role');
+             return res.status(200).json({ success: true, data: anyEvents });
+        }
+        return res.status(200).json({ success: true, data: events });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
+// Vương thêm code của mình vào đây nhé
+const MAX_PARTICIPANTS = 20
+
+export const joinEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user.id
+
+    const event = await Event.findById(id)
+
+    if (!event) {
+      return res.status(404).json({
+        message: 'Event not found',
+      })
+    }
+
+    const alreadyJoined = event.participants.some(
+      (participantId) => participantId.toString() === userId
+    )
+
+    if (alreadyJoined) {
+      return res.status(400).json({
+        message: 'Already joined',
+      })
+    }
+
+    if (event.participants.length >= MAX_PARTICIPANTS) {
+      return res.status(400).json({
+        message: 'Event is full',
+      })
+    }
+
+    event.participants.push(userId)
+
+    await event.save()
+
+    res.json({
+      message: 'Joined successfully',
+      participants: event.participants,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}
+
+export const cancelJoinEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user.id
+
+    const event = await Event.findById(id)
+
+    if (!event) {
+      return res.status(404).json({
+        message: 'Event not found',
+      })
+    }
+
+    event.participants = event.participants.filter(
+      (participantId) => participantId.toString() !== userId
+    )
+
+    await event.save()
+
+    res.json({
+      message: 'Canceled successfully',
+      participants: event.participants,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}
+
+
+export const reportEvent = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body
+
+    const report = await Report.create({
+      event: id,
+      user: req.user.id,
+      reason,
+    })
+
+    res.status(201).json({
+      message: 'Report submitted',
+      report,
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    })
+  }
+}

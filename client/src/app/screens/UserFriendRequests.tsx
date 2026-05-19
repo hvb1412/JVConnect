@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -74,7 +74,7 @@ export function UserFriendRequests() {
                             <Link to="/user/mypage">マイページ</Link>
                         </nav>
                     </div>
-                    <LanguageToggle />
+                    <HeaderActions />
                 </div>
             </header>
 

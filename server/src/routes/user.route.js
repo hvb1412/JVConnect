@@ -4,7 +4,8 @@ import {
     getUserById,
     updateProfile,
     getUserProfile,
-    searchUsers
+    searchUsers,
+    getSuggestedUsers
 } from '../controllers/user.controller.js';
 
 import authMiddleware from '../middlewares/auth.middleware.js';
@@ -12,6 +13,7 @@ import authMiddleware from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 router.get('/match', searchUsers);
+router.get('/suggested', getSuggestedUsers);
 
 router.put('/profile', authMiddleware, updateProfile);
 

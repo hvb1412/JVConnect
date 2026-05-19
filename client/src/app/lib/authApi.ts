@@ -14,13 +14,15 @@ export type AuthResponse = {
     message?: string;
 };
 
-export async function loginUser(email: string, password: string): Promise<{ user: UiUser, token: string }> {
+export async function loginUser(email: string, password: string): Promise<{ user: UiUser, token: string, role: string }> {
     try {
         const response = await api.post<AuthResponse>("/auth/login", { email, password });
         if (response.data.success && response.data.data) {
+            const backendUser = response.data.data.user;
             return {
-                user: mapBackendUserToUi(response.data.data.user),
-                token: response.data.data.token
+                user: mapBackendUserToUi(backendUser),
+                token: response.data.data.token,
+                role: backendUser.role || "user",
             };
         }
         throw new Error(response.data.message || "Đăng nhập thất bại");
@@ -53,4 +55,5 @@ export async function registerUser(name: string, email: string, password: string
 export function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("role");
 }

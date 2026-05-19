@@ -11,6 +11,7 @@ export type BackendUser = {
     occupation?: string;
     introduction?: string;
     latestBanDate?: string | null;
+    role?: string;
 };
 
 export type UiUser = {
@@ -98,6 +99,20 @@ export async function searchUsers(params: {
     return users
         .filter((user) => !currentUserId || user._id !== currentUserId)
         .map(mapBackendUserToUi);
+}
+
+export async function getSuggestedUsers(): Promise<UiUser[]> {
+    try {
+        const response = await api.get<ApiResponse<BackendUser[]>>("/users/suggested", {
+            headers: getAuthHeader(),
+        });
+
+        const users = Array.isArray(response.data?.data) ? response.data.data : [];
+        return users.map(mapBackendUserToUi);
+    } catch (error) {
+        console.error("Failed to fetch suggested users", error);
+        return [];
+    }
 }
 
 export async function getUserProfile(id: string): Promise<UiUser> {

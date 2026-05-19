@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { AlertTriangle } from "lucide-react";
@@ -14,7 +14,7 @@ export function UserReportRestricted() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo />
-          <LanguageToggle />
+          <HeaderActions />
         </div>
       </header>
 

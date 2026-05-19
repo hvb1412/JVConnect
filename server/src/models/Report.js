@@ -34,6 +34,28 @@ const reportSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        decision: {
+            type: String,
+            enum: ['pending', 'approved', 'rejected'],
+            default: 'pending',
+        },
+        decisionReason: {
+            type: String,
+            default: '',
+        },
+        decisionDate: {
+            type: Date,
+            default: null,
+        },
+        decidedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+        banDays: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,
