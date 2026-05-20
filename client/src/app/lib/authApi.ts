@@ -39,7 +39,7 @@ export async function registerUser(
     email: string,
     password: string,
     avatarURL?: string,
-): Promise<{ user: UiUser, token: string }> {
+): Promise<{ user: UiUser, token: string, role: string }> {
     try {
         const response = await api.post<AuthResponse>("/auth/register", {
             name,
@@ -48,9 +48,11 @@ export async function registerUser(
             avatarURL,
         });
         if (response.data.success && response.data.data) {
+            const backendUser = response.data.data.user;
             return {
-                user: mapBackendUserToUi(response.data.data.user),
-                token: response.data.data.token
+                user: mapBackendUserToUi(backendUser),
+                token: response.data.data.token,
+                role: backendUser.role || "user",
             };
         }
         throw new Error(response.data.message || "Đăng ký thất bại");

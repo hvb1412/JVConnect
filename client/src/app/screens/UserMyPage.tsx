@@ -23,7 +23,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "../components/ui/dialog";
-import { getUserProfile, updateUserProfile } from "../lib/userApi";
+import {
+    getUserProfile,
+    updateUserProfile,
+    changeUserPassword,
+    deleteUserAccount,
+} from "../lib/userApi";
 import { logout } from "../lib/authApi";
 import { LogOut } from "lucide-react";
 import { uploadImageByUrl } from "../lib/uploadApi";
@@ -40,6 +45,10 @@ export function UserMyPage() {
     const [area, setArea] = useState("");
     const [industry, setIndustry] = useState("");
     const [bio, setBio] = useState("");
+    const [memberSince, setMemberSince] = useState("2024年1月");
+    const [connections, setConnections] = useState(0);
+    const [eventsAttended, setEventsAttended] = useState(0);
+    const [needsProfileUpdate, setNeedsProfileUpdate] = useState(false);
     const [editing, setEditing] = useState(false);
 
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -47,26 +56,29 @@ export function UserMyPage() {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const user = {
         avatar: "https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMGF2YXRhciUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NDg5MjI0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-        memberSince: "2024年1月",
-        connections: 128,
-        eventsAttended: 15,
     };
     useEffect(() => {
         const loadProfile = async () => {
             try {
                 if (!userId) return;
 
-                const profile = await getUserProfile(userId);
+                        const profile = await getUserProfile(userId);
 
                 setName(profile.name);
                 setAvatar(profile.avatar);
                 setArea(profile.location);
                 setIndustry(profile.role);
                 setBio(profile.intro);
+                setMemberSince(profile.memberSince ?? "未登録");
+                setConnections(profile.connections ?? 0);
+                setEventsAttended(profile.eventsAttended ?? 0);
+                setNeedsProfileUpdate(profile.needsProfileUpdate ?? false);
             } catch (error) {
                 console.error(error);
             }
@@ -87,6 +99,7 @@ export function UserMyPage() {
             });
 
             setEditing(false);
+            setNeedsProfileUpdate(false);
 
             alert("プロフィールを更新しました");
         } catch (error) {
@@ -132,6 +145,50 @@ export function UserMyPage() {
         } finally {
             setIsUploading(false);
             setSaving(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
+            toast.error("入力を確認してください。");
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            toast.error("新しいパスワードは8文字以上である必要があります。");
+            return;
+        }
+
+        setIsChangingPassword(true);
+
+        try {
+            await changeUserPassword(currentPassword, newPassword);
+            toast.success("パスワードを変更しました。");
+            setPasswordDialogOpen(false);
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || error?.message || "パスワードの変更に失敗しました。");
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setIsDeletingAccount(true);
+
+        try {
+            await deleteUserAccount();
+            logout();
+            localStorage.removeItem("userId");
+            localStorage.removeItem("role");
+            toast.success("アカウントを削除しました。");
+            navigate("/guest/login");
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || error?.message || "アカウント削除に失敗しました。");
+        } finally {
+            setIsDeletingAccount(false);
         }
     };
 
@@ -232,7 +289,7 @@ export function UserMyPage() {
                                             メンバー歴
                                         </span>
                                         <span className="font-medium">
-                                            {user.memberSince}
+                                            {memberSince}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -240,7 +297,7 @@ export function UserMyPage() {
                                             つながり
                                         </span>
                                         <span className="font-medium">
-                                            {user.connections}人
+                                            {connections}人
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -248,7 +305,7 @@ export function UserMyPage() {
                                             参加イベント
                                         </span>
                                         <span className="font-medium">
-                                            {user.eventsAttended}回
+                                            {eventsAttended}回
                                         </span>
                                     </div>
                                 </div>
@@ -446,16 +503,12 @@ export function UserMyPage() {
                             disabled={
                                 !currentPassword ||
                                 !newPassword ||
-                                newPassword !== confirmPassword
+                                newPassword !== confirmPassword ||
+                                isChangingPassword
                             }
-                            onClick={() => {
-                                setPasswordDialogOpen(false);
-                                setCurrentPassword("");
-                                setNewPassword("");
-                                setConfirmPassword("");
-                            }}
+                            onClick={handleChangePassword}
                         >
-                            変更する
+                            {isChangingPassword ? "変更中..." : "変更する"}
                         </Button>
                         <Button
                             variant="outline"
@@ -478,12 +531,10 @@ export function UserMyPage() {
                     <DialogFooter>
                         <Button
                             variant="destructive"
-                            onClick={() => {
-                                setDeleteDialogOpen(false);
-                                navigate("/guest/login");
-                            }}
+                            disabled={isDeletingAccount}
+                            onClick={handleDeleteAccount}
                         >
-                            削除する
+                            {isDeletingAccount ? "削除中..." : "削除する"}
                         </Button>
                         <Button
                             variant="outline"
@@ -492,6 +543,33 @@ export function UserMyPage() {
                             キャンセル
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={needsProfileUpdate} onOpenChange={setNeedsProfileUpdate}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>プロフィールを更新してください</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-gray-600">
+                        新規登録されたアカウントのため、プロフィール情報を入力するとサービスが使いやすくなります。
+                    </p>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setNeedsProfileUpdate(false)}
+                        >
+                            あとで
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setEditing(true);
+                                setNeedsProfileUpdate(false);
+                            }}
+                        >
+                            プロフィールを編集する
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

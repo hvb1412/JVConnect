@@ -30,6 +30,7 @@ export const register = async (req, res) => {
             password: password,
             name,
             avatarURL: avatarURL || '',
+            needsProfileUpdate: true,
             role: normalizedRole,
         });
 
