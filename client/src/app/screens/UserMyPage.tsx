@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
@@ -14,7 +14,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { Textarea } from "../components/ui/textarea";
-import { Edit } from "lucide-react";
+import { Edit, Pencil } from "lucide-react";
 
 import {
     Dialog,
@@ -26,12 +26,16 @@ import {
 import { getUserProfile, updateUserProfile } from "../lib/userApi";
 import { logout } from "../lib/authApi";
 import { LogOut } from "lucide-react";
+import { uploadImageByUrl } from "../lib/uploadApi";
+import { toast } from "sonner";
 
 export function UserMyPage() {
     const navigate = useNavigate();
     const userId = localStorage.getItem("userId") || "";
     const [name, setName] = useState("山田太郎");
     const [avatar, setAvatar] = useState("");
+    const [avatarError, setAvatarError] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [area, setArea] = useState("");
     const [industry, setIndustry] = useState("");
@@ -43,6 +47,7 @@ export function UserMyPage() {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const user = {
         avatar: "https://images.unsplash.com/photo-1701463387028-3947648f1337?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMGF2YXRhciUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NDg5MjI0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
@@ -75,6 +80,7 @@ export function UserMyPage() {
 
             await updateUserProfile({
                 name: name,
+                avatarURL: avatar,
                 area: area,
                 occupation: industry,
                 introduction: bio,
@@ -87,6 +93,44 @@ export function UserMyPage() {
             console.error(error);
             alert("更新に失敗しました");
         } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSelectAvatar = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            setAvatarError("ファイルサイズは5MB以内にしてください。");
+            return;
+        }
+
+        setAvatarError("");
+        setIsUploading(true);
+        setSaving(true);
+
+        try {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+                reader.readAsDataURL(file);
+            });
+
+            const result = await uploadImageByUrl(dataUrl);
+            await updateUserProfile({ avatarURL: result.secure_url });
+            setAvatar(result.secure_url);
+            toast.success("プロフィール画像を更新しました。");
+        } catch (error: any) {
+            setAvatarError(error?.message || "アップロードに失敗しました。");
+            toast.error("アップロードに失敗しました。");
+        } finally {
+            setIsUploading(false);
             setSaving(false);
         }
     };
@@ -149,12 +193,34 @@ export function UserMyPage() {
                     <div className="lg:col-span-1">
                         <Card className="sticky top-24">
                             <CardContent className="p-6 text-center">
-                                <Avatar className="h-32 w-32 mx-auto mb-4">
-                                    <AvatarImage src={avatar || user.avatar} />
-                                    <AvatarFallback className="text-2xl">
-                                        {name ? name[0] : "山"}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <div className="relative mx-auto mb-4 w-32">
+                                    <Avatar className="h-32 w-32">
+                                        <AvatarImage src={avatar || user.avatar} />
+                                        <AvatarFallback className="text-2xl">
+                                            {name ? name[0] : "山"}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <input
+                                        ref={fileInputRef}
+                                        id="avatar"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className="hidden"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAvatar}
+                                        className="absolute bottom-1 right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white bg-blue-600 text-white shadow hover:bg-blue-700"
+                                        aria-label="プロフィール画像を変更"
+                                        disabled={isUploading}
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                {avatarError && (
+                                    <p className="mb-2 text-xs text-red-600">{avatarError}</p>
+                                )}
                                 <h2 className="text-xl font-bold mb-1">
                                     {name}
                                 </h2>
@@ -254,7 +320,7 @@ export function UserMyPage() {
                                     <Button
                                         className="flex-1"
                                         onClick={handleSaveProfile}
-                                        disabled={!editing || saving}
+                                        disabled={!editing || saving || isUploading}
                                     >
                                         {saving ? "保存中..." : "保存"}
                                     </Button>
