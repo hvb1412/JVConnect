@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { useEffect, useState } from "react";
-import { getSuggestedUsers, UiUser } from "../lib/userApi";
+import { useEffect, useState, type ChangeEvent } from "react";
+import { getSuggestedUsers, getUserProfile, updateUserProfile, UiUser } from "../lib/userApi";
 import { getSuggestedEvents, UiEvent } from "../lib/eventApi";
 
 import { Logo } from "../components/Logo";
@@ -16,8 +16,18 @@ import {
 } from "../components/ui/card";
 
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../components/ui/dialog";
 
 import { Search, Calendar, User } from "lucide-react";
 
@@ -26,15 +36,58 @@ import { isEventContentHidden } from "../lib/contentModerationStore";
 export function UserHome() {
     const [recommendedUsers, setRecommendedUsers] = useState<UiUser[]>([]);
     const [recommendedEvents, setRecommendedEvents] = useState<UiEvent[]>([]);
+    const [needsProfileUpdate, setNeedsProfileUpdate] = useState(false);
+    const [profileArea, setProfileArea] = useState("");
+    const [profileOccupation, setProfileOccupation] = useState("");
+    const [profileIntroduction, setProfileIntroduction] = useState("");
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+    const userId = localStorage.getItem("userId") || "";
 
     useEffect(() => {
         getSuggestedUsers().then(setRecommendedUsers);
         getSuggestedEvents().then(setRecommendedEvents);
     }, []);
 
+    useEffect(() => {
+        const loadProfile = async () => {
+            if (!userId) return;
+
+            try {
+                const profile = await getUserProfile(userId);
+                setProfileArea(profile.location);
+                setProfileOccupation(profile.industry);
+                setProfileIntroduction(profile.intro);
+                setNeedsProfileUpdate(profile.needsProfileUpdate ?? false);
+            } catch (error) {
+                console.error("Failed to load profile for home popup", error);
+            }
+        };
+
+        loadProfile();
+    }, [userId]);
+
     const visibleRecommendedEvents = recommendedEvents.filter(
         (event) => !isEventContentHidden(event.title),
     );
+
+    const handleSaveProfile = async () => {
+        try {
+            setIsSavingProfile(true);
+            await updateUserProfile({
+                area: profileArea,
+                occupation: profileOccupation,
+                introduction: profileIntroduction,
+            });
+            setNeedsProfileUpdate(false);
+            alert("プロフィールを更新しました。");
+        } catch (error) {
+            console.error(error);
+            alert("プロフィールの保存に失敗しました。");
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -90,6 +143,46 @@ export function UserHome() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
+                <Dialog open={needsProfileUpdate} onOpenChange={(open) => { if (open) setNeedsProfileUpdate(true); /* ignore attempts to close from overlay/escape */ }}>
+                    <DialogContent hideClose>
+                        <DialogHeader>
+                            <DialogTitle>プロフィール編集</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="home-profile-area">地域</Label>
+                                <Input
+                                    id="home-profile-area"
+                                    value={profileArea}
+                                    onChange={(event) => setProfileArea(event.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="home-profile-occupation">業界</Label>
+                                <Input
+                                    id="home-profile-occupation"
+                                    value={profileOccupation}
+                                    onChange={(event) => setProfileOccupation(event.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="home-profile-intro">自己紹介</Label>
+                                <Textarea
+                                    id="home-profile-intro"
+                                    value={profileIntroduction}
+                                    onChange={(event) => setProfileIntroduction(event.target.value)}
+                                    className="min-h-[120px]"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
+                                {isSavingProfile ? "保存中..." : "保存する"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 <div className="grid lg:grid-cols-3 gap-6">
                     {/* Left Column */}
                     <div className="lg:col-span-2 space-y-6">

@@ -66,7 +66,8 @@ export function GuestLogin() {
       localStorage.setItem("userId", result.user.id);
       localStorage.setItem("role", result.role);
       
-      // Redirect based on role
+      // Redirect based on role and profile update requirement
+      // Always redirect to Home after login (admin still to dashboard).
       if (result.role === "admin") {
         navigate("/admin/dashboard");
       } else {

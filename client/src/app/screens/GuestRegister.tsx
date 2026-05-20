@@ -77,8 +77,14 @@ export function GuestRegister() {
       // Auto login after registration
       localStorage.setItem("token", result.token);
       localStorage.setItem("userId", result.user.id);
+      localStorage.setItem("role", result.role);
       
-      navigate("/user/home");
+      if (result.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        // Always redirect to Home after register auto-login.
+        navigate("/user/home");
+      }
     } catch (error: any) {
       setRegisterError(error.message || "登録に失敗しました。");
     } finally {
