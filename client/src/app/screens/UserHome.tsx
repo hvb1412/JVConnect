@@ -45,9 +45,15 @@ export function UserHome() {
     const userId = localStorage.getItem("userId") || "";
 
     useEffect(() => {
-        getSuggestedUsers().then(setRecommendedUsers);
+        getSuggestedUsers().then((users) => {
+            // Loại bỏ bản thân khỏi danh sách gợi ý
+            const filtered = userId
+                ? users.filter((u) => u.id !== userId)
+                : users;
+            setRecommendedUsers(filtered);
+        });
         getSuggestedEvents().then(setRecommendedEvents);
-    }, []);
+    }, [userId]);
 
     useEffect(() => {
         const loadProfile = async () => {

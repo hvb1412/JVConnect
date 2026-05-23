@@ -2,34 +2,50 @@ import { Server } from "socket.io";
 
 let io;
 
-// Giữ danh sách user đang online (userId -> socketId)
+// userId -> socketId
 const userSocketMap = new Map();
 
 export const initSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: "*", // Cập nhật domain FE của bạn nếu cần
-            methods: ["GET", "POST"]
-        }
+            origin: "*",
+            methods: ["GET", "POST"],
+        },
     });
 
     io.on("connection", (socket) => {
         console.log(`[Socket] A user connected: ${socket.id}`);
 
-        // Người dùng join với userId
+        // ── join: đăng ký userId và broadcast online ──────────────────────
         socket.on("join", (userId) => {
-            if (userId) {
-                userSocketMap.set(userId, socket.id);
-                console.log(`[Socket] User ${userId} joined with socket ${socket.id}`);
+            if (!userId) return;
+
+            const wasOffline = !userSocketMap.has(userId);
+            userSocketMap.set(userId, socket.id);
+            console.log(`[Socket] User ${userId} joined with socket ${socket.id}`);
+
+            // Broadcast cho tất cả (trừ chính mình) biết user này online
+            if (wasOffline) {
+                socket.broadcast.emit("user_online", { userId });
             }
         });
 
-        // Người dùng disconnect
+        // ── check_online: client hỏi trạng thái của 1 userId cụ thể ──────
+        socket.on("check_online", (userId, callback) => {
+            if (typeof callback === "function") {
+                callback({ online: userSocketMap.has(userId) });
+            }
+        });
+
+        // ── disconnect: xóa khỏi map và broadcast offline ─────────────────
         socket.on("disconnect", () => {
-            for (let [userId, socketId] of userSocketMap.entries()) {
+            for (const [userId, socketId] of userSocketMap.entries()) {
                 if (socketId === socket.id) {
                     userSocketMap.delete(userId);
                     console.log(`[Socket] User ${userId} disconnected`);
+
+                    // Broadcast offline cho tất cả
+                    socket.broadcast.emit("user_offline", { userId });
                     break;
                 }
             }
@@ -40,12 +56,14 @@ export const initSocket = (server) => {
 };
 
 export const getIO = () => {
-    if (!io) {
-        throw new Error("Socket.io not initialized!");
-    }
+    if (!io) throw new Error("Socket.io not initialized!");
     return io;
 };
 
 export const getReceiverSocketId = (receiverId) => {
     return userSocketMap.get(receiverId);
+};
+
+export const isUserOnline = (userId) => {
+    return userSocketMap.has(userId);
 };

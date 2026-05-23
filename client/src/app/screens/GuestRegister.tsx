@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { LanguageToggle } from "../components/LanguageToggle";
@@ -6,16 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { Mail, Lock, User, Upload } from "lucide-react";
-import { registerUser } from "../lib/authApi";
+import { Mail, Lock, User, Upload, ShieldCheck } from "lucide-react";
+import { registerUser, verifyEmail, resendOtp } from "../lib/authApi";
 import { uploadImageByUrl } from "../lib/uploadApi";
 
 export function GuestRegister() {
   const navigate = useNavigate();
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  
   const [registerError, setRegisterError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
@@ -23,6 +26,16 @@ export function GuestRegister() {
   const [isUploading, setIsUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0 && step === 2) {
+      interval = setInterval(() => setResendTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer, step]);
 
   const handleSelectAvatar = () => {
     fileInputRef.current?.click();
@@ -72,9 +85,28 @@ export function GuestRegister() {
     try {
       setIsLoading(true);
       setRegisterError("");
-      const result = await registerUser(name, email, password, avatarUrl);
+      await registerUser(name, email, password, avatarUrl);
+      setStep(2);
+      setResendTimer(60); // 60 seconds countdown
+    } catch (error: any) {
+      setRegisterError(error.message || "登録に失敗しました。");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) {
+      setRegisterError("OTPを入力してください。");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setRegisterError("");
+      const result = await verifyEmail(email, otp);
       
-      // Auto login after registration
+      // Auto login after verification
       localStorage.setItem("token", result.token);
       localStorage.setItem("userId", result.user.id);
       localStorage.setItem("role", result.role);
@@ -82,13 +114,22 @@ export function GuestRegister() {
       if (result.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        // Always redirect to Home after register auto-login.
         navigate("/user/home");
       }
     } catch (error: any) {
-      setRegisterError(error.message || "登録に失敗しました。");
+      setRegisterError(error.message || "認証に失敗しました。");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setRegisterError("");
+      await resendOtp(email);
+      setResendTimer(60);
+    } catch (error: any) {
+      setRegisterError(error.message || "再送信に失敗しました。");
     }
   };
 
@@ -120,130 +161,195 @@ export function GuestRegister() {
 
             <Card className="w-full shadow-xl">
               <CardHeader className="space-y-2">
-                <CardTitle className="text-2xl">新規登録</CardTitle>
+                <CardTitle className="text-2xl">
+                  {step === 1 ? "新規登録" : "メールアドレスの確認"}
+                </CardTitle>
                 <CardDescription>
-                  アカウントを作成してください
+                  {step === 1 
+                    ? "アカウントを作成してください" 
+                    : "入力したメールアドレスに送信された6桁の確認コード(OTP)を入力してください。"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="name">名前</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="山田太郎"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (registerError) setRegisterError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                {step === 1 ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">名前</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="山田太郎"
+                          value={name}
+                          onChange={(e) => {
+                            setName(e.target.value);
+                            if (registerError) setRegisterError("");
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">メールアドレス</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (registerError) setRegisterError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">メールアドレス</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            if (registerError) setRegisterError("");
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">パスワード</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (registerError) setRegisterError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">パスワード</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            if (registerError) setRegisterError("");
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">パスワード確認</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        if (registerError) setRegisterError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">パスワード確認</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            if (registerError) setRegisterError("");
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="avatar">プロフィール画像</Label>
-                  <input
-                    ref={fileInputRef}
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSelectAvatar}
-                    className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors"
-                  >
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar preview"
-                        className="mx-auto h-36 w-36 rounded-full object-cover"
+                    <div className="space-y-2">
+                      <Label htmlFor="avatar">プロフィール画像</Label>
+                      <input
+                        ref={fileInputRef}
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
                       />
-                    ) : (
-                      <>
-                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-600">
-                          {isUploading ? "アップロード中..." : "クリックしてアップロード"}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-500">
-                          PNG, JPG, GIF (最大 5MB)
-                        </p>
-                      </>
-                    )}
-                  </button>
-                  {avatarError && <p className="text-xs text-red-600">{avatarError}</p>}
-                </div>
+                      <button
+                        type="button"
+                        onClick={handleSelectAvatar}
+                        className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors"
+                      >
+                        {avatarPreview ? (
+                          <img
+                            src={avatarPreview}
+                            alt="Avatar preview"
+                            className="mx-auto h-36 w-36 rounded-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-sm text-gray-600">
+                              {isUploading ? "アップロード中..." : "クリックしてアップロード"}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              PNG, JPG, GIF (最大 5MB)
+                            </p>
+                          </>
+                        )}
+                      </button>
+                      {avatarError && <p className="text-xs text-red-600">{avatarError}</p>}
+                    </div>
 
-                {registerError && <p className="text-sm text-red-600">{registerError}</p>}
+                    {registerError && <p className="text-sm text-red-600">{registerError}</p>}
 
-                <div className="space-y-3 pt-2">
-                  <Button className="w-full" size="lg" onClick={handleRegister} disabled={isLoading || isUploading}>
-                    {isLoading ? "登録中..." : "登録"}
-                  </Button>
-                  <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
-                    <Link to="/guest/login">ログインへ</Link>
-                  </Button>
-                </div>
+                    <div className="space-y-3 pt-2">
+                      <Button className="w-full" size="lg" onClick={handleRegister} disabled={isLoading || isUploading}>
+                        {isLoading ? "登録中..." : "登録して認証コードを受け取る"}
+                      </Button>
+                      <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
+                        <Link to="/guest/login">ログインへ</Link>
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  // OTP VERIFICATION STEP
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 p-4 rounded-lg flex items-start gap-3">
+                      <ShieldCheck className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-blue-800 font-medium">確認コードを送信しました</p>
+                        <p className="text-xs text-blue-600 mt-1">{email} の受信箱をご確認ください。</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">確認コード (OTP)</Label>
+                      <Input
+                        id="otp"
+                        type="text"
+                        placeholder="123456"
+                        maxLength={6}
+                        className="text-center text-2xl tracking-[0.5em] font-mono h-14"
+                        value={otp}
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/[^0-9]/g, ''));
+                          if (registerError) setRegisterError("");
+                        }}
+                      />
+                    </div>
+
+                    {registerError && <p className="text-sm text-red-600 text-center">{registerError}</p>}
+
+                    <Button className="w-full h-12 text-lg" onClick={handleVerifyOtp} disabled={isLoading || otp.length !== 6}>
+                      {isLoading ? "認証中..." : "認証してログイン"}
+                    </Button>
+
+                    <div className="text-center mt-4">
+                      {resendTimer > 0 ? (
+                        <p className="text-sm text-gray-500">
+                          コードを再送信するには {resendTimer} 秒お待ちください
+                        </p>
+                      ) : (
+                        <button 
+                          onClick={handleResendOtp}
+                          className="text-sm text-blue-600 hover:underline font-medium"
+                        >
+                          コードを再送信する
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="text-center pt-2">
+                      <button 
+                        onClick={() => setStep(1)}
+                        className="text-sm text-gray-500 hover:text-gray-700 underline"
+                      >
+                        メールアドレスを変更する
+                      </button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

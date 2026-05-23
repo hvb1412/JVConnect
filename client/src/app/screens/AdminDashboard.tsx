@@ -115,11 +115,14 @@ export function AdminDashboard() {
               <Link to="/admin/dashboard" className="text-blue-600 font-medium">
                 ダッシュボード
               </Link>
-              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
-                通報管理
+              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">
+                ユーザー管理
               </Link>
               <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">
                 イベント管理
+              </Link>
+              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
+                通報管理
               </Link>
             </nav>
           </div>
