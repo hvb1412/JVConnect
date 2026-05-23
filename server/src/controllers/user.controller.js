@@ -7,17 +7,19 @@ import Message from "../models/Message.js";
 import Report from "../models/Report.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendEmail, getOtpEmailTemplate } from "../utils/sendEmail.js";
+
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'jvconnect_secret_key_123456';
 
 const getAuthUserIdFromHeader = (req) => {
     const authHeader = req.headers.authorization;
-
     if (!authHeader) return null;
-
     const token = authHeader.split(" ")[1];
     if (!token) return null;
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         return decoded?.id || decoded?.userId || null;
     } catch {
         return null;
@@ -105,15 +107,15 @@ export const updateProfile = async (req, res) => {
     }
 };
 
-export const updatePassword = async (req, res) => {
+export const requestPasswordChangeOtp = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword } = req.body;
 
-        if (!currentPassword || !newPassword) {
+        if (!currentPassword) {
             return res.status(400).json({
                 success: false,
-                message: "現在のパスワードと新しいパスワードを入力してください",
+                message: "現在のパスワードを入力してください",
             });
         }
 
@@ -133,7 +135,73 @@ export const updatePassword = async (req, res) => {
             });
         }
 
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
+
+        const html = getOtpEmailTemplate(user.name, otp, 'パスワード変更の確認');
+        await sendEmail(user.email, 'パスワード変更の確認コード (JVConnect)', html);
+
+        return res.status(200).json({
+            success: true,
+            message: "確認コードをメールに送信しました",
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+export const updatePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { currentPassword, newPassword, otp } = req.body;
+
+        if (!currentPassword || !newPassword || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "現在のパスワード、新しいパスワード、確認コードを入力してください",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const passwordMatches = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatches) {
+            return res.status(401).json({
+                success: false,
+                message: "現在のパスワードが正しくありません",
+            });
+        }
+
+        if (user.otp !== otp) {
+            return res.status(400).json({
+                success: false,
+                message: "確認コードが正しくありません",
+            });
+        }
+
+        if (user.otpExpires < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "確認コードの有効期限が切れています",
+            });
+        }
+
         user.password = newPassword;
+        user.otp = null;
+        user.otpExpires = null;
         await user.save();
 
         return res.status(200).json({
@@ -245,6 +313,8 @@ export const searchUsers = async (req, res) => {
         if (currentUserId) {
             query._id = { $ne: currentUserId };
         }
+
+        query.role = { $ne: 'admin' };
 
         const users = await User.find(query).select("-password -confirmCode");
 

@@ -27,7 +27,7 @@ import {
     acceptMessageRequest,
     declineMessageRequest,
 } from "../lib/conversationApi";
-import { initSocket } from "../lib/socket.ts";
+import { initSocket, checkOnline } from "../lib/socket.ts";
 
 export function UserChat() {
     const { id } = useParams();
@@ -38,12 +38,12 @@ export function UserChat() {
     const [isPending, setIsPending] = useState(false);
     const [initiatorId, setInitiatorId] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [partnerOnline, setPartnerOnline] = useState(false);
     const [chatUser, setChatUser] = useState<{
         id: string;
         name: string;
         role: string;
         avatar: string;
-        online: boolean;
     } | null>(null);
     const [messages, setMessages] = useState<UiConversationMessage[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,6 +74,9 @@ export function UserChat() {
 
             setLoading(true);
             setLoadError(null);
+
+            // Socket を先に初期化しておくことで checkOnline が使える
+            initSocket(currentUserId);
 
             try {
                 let convId = id;
@@ -106,8 +109,11 @@ export function UserChat() {
                     name: result.partner.name,
                     role: "フレンド",
                     avatar: result.partner.avatarURL || "",
-                    online: true,
                 });
+
+                // Kiểm tra online status ban đầu
+                const online = await checkOnline(result.partner._id);
+                setPartnerOnline(online);
                 setMessages(result.messages);
 
                 // Mark as read only if accepted (don't mark pending messages from sender)
@@ -135,6 +141,7 @@ export function UserChat() {
         const socket = initSocket(currentUserId);
         if (!socket) return;
 
+        // ── Messages ──────────────────────────────────────────────────────
         const handleMessage = (payload: {
             message: BackendMessage;
             receiverId: string;
@@ -160,14 +167,31 @@ export function UserChat() {
             }
         };
 
+        // ── Online / Offline events ───────────────────────────────────────
+        const handleOnline = (data: { userId: string }) => {
+            if (chatUser && data.userId === chatUser.id) {
+                setPartnerOnline(true);
+            }
+        };
+
+        const handleOffline = (data: { userId: string }) => {
+            if (chatUser && data.userId === chatUser.id) {
+                setPartnerOnline(false);
+            }
+        };
+
         socket.on("receive_message", handleMessage);
         socket.on("message_request", handleMessage);
+        socket.on("user_online", handleOnline);
+        socket.on("user_offline", handleOffline);
 
         return () => {
             socket.off("receive_message", handleMessage);
             socket.off("message_request", handleMessage);
+            socket.off("user_online", handleOnline);
+            socket.off("user_offline", handleOffline);
         };
-    }, [conversationId, chatUser?.avatar, isPending]);
+    }, [conversationId, chatUser?.avatar, chatUser?.id, isPending]);
 
     // ─── Derived state ──────────────────────────────────────────────────────
     const iAmInitiator = !!currentUserId && currentUserId === initiatorId;
@@ -274,10 +298,8 @@ export function UserChat() {
                                 )}
                             </div>
                             <p className="text-sm text-gray-600 flex items-center gap-2">
-                                {chatUser?.online && (
-                                    <span className="h-2 w-2 bg-green-500 rounded-full" />
-                                )}
-                                {chatUser?.online ? "オンライン" : "オフライン"}
+                                <span className={`h-2 w-2 rounded-full transition-colors duration-500 ${partnerOnline ? "bg-green-500" : "bg-gray-300"}`} />
+                                {partnerOnline ? "オンライン" : "オフライン"}
                             </p>
                         </div>
                         <Button asChild variant="outline" size="sm">

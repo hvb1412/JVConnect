@@ -27,6 +27,7 @@ import {
     getUserProfile,
     updateUserProfile,
     changeUserPassword,
+    requestChangePasswordOtp,
     deleteUserAccount,
 } from "../lib/userApi";
 import { logout } from "../lib/authApi";
@@ -58,6 +59,9 @@ export function UserMyPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [otpDialogOpen, setOtpDialogOpen] = useState(false);
+    const [otp, setOtp] = useState("");
+    const [isRequestingOtp, setIsRequestingOtp] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const user = {
@@ -148,7 +152,7 @@ export function UserMyPage() {
         }
     };
 
-    const handleChangePassword = async () => {
+    const handleRequestOtp = async () => {
         if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
             toast.error("入力を確認してください。");
             return;
@@ -159,15 +163,34 @@ export function UserMyPage() {
             return;
         }
 
-        setIsChangingPassword(true);
-
+        setIsRequestingOtp(true);
         try {
-            await changeUserPassword(currentPassword, newPassword);
-            toast.success("パスワードを変更しました。");
+            await requestChangePasswordOtp(currentPassword);
+            toast.success("確認コードをメールに送信しました。");
             setPasswordDialogOpen(false);
+            setOtpDialogOpen(true);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || error?.message || "エラーが発生しました。");
+        } finally {
+            setIsRequestingOtp(false);
+        }
+    };
+
+    const handleVerifyAndChangePassword = async () => {
+        if (!otp) {
+            toast.error("確認コードを入力してください。");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            await changeUserPassword(currentPassword, newPassword, otp);
+            toast.success("パスワードを変更しました。");
+            setOtpDialogOpen(false);
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
+            setOtp("");
         } catch (error: any) {
             toast.error(error?.response?.data?.message || error?.message || "パスワードの変更に失敗しました。");
         } finally {
@@ -504,15 +527,55 @@ export function UserMyPage() {
                                 !currentPassword ||
                                 !newPassword ||
                                 newPassword !== confirmPassword ||
-                                isChangingPassword
+                                isRequestingOtp
                             }
-                            onClick={handleChangePassword}
+                            onClick={handleRequestOtp}
                         >
-                            {isChangingPassword ? "変更中..." : "変更する"}
+                            {isRequestingOtp ? "処理中..." : "変更する"}
                         </Button>
                         <Button
                             variant="outline"
                             onClick={() => setPasswordDialogOpen(false)}
+                        >
+                            キャンセル
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={otpDialogOpen}
+                onOpenChange={setOtpDialogOpen}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>確認コード入力</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <p className="text-sm text-gray-600">
+                            登録されたメールアドレスに6桁の確認コードを送信しました。
+                        </p>
+                        <div className="space-y-2">
+                            <Label htmlFor="otp-code">確認コード</Label>
+                            <Input
+                                id="otp-code"
+                                type="text"
+                                placeholder="123456"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            disabled={!otp || isChangingPassword}
+                            onClick={handleVerifyAndChangePassword}
+                        >
+                            {isChangingPassword ? "変更中..." : "確認して変更"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setOtpDialogOpen(false)}
                         >
                             キャンセル
                         </Button>

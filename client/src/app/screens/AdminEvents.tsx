@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
@@ -9,7 +9,7 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
-import { Plus, Edit, Trash2, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import {
   deleteAdminEvent,
   AdminEvent,
 } from "../lib/adminApi";
+import { uploadImageByUrl } from "../lib/uploadApi";
 
 export function AdminEvents() {
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -41,6 +42,11 @@ export function AdminEvents() {
   const [newEventImage, setNewEventImage] = useState("");
   const [newEventStatus, setNewEventStatus] = useState<"active" | "draft">("draft");
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageError, setImageError] = useState("");
+
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -51,6 +57,72 @@ export function AdminEvents() {
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  const handleSelectImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("ファイルサイズは5MB以内にしてください。");
+      return;
+    }
+
+    setImageError("");
+    setIsUploading(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageByUrl(dataUrl);
+      setNewEventImage(result.secure_url);
+    } catch (error: any) {
+      setImageError(error?.message || "アップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEditSelectImage = () => {
+    editFileInputRef.current?.click();
+  };
+
+  const handleEditImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("ファイルサイズは5MB以内にしてください。");
+      return;
+    }
+
+    setImageError("");
+    setIsUploading(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageByUrl(dataUrl);
+      setEditFormData({ ...editFormData, imageURL: result.secure_url });
+    } catch (error: any) {
+      setImageError(error?.message || "アップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -181,11 +253,14 @@ export function AdminEvents() {
               <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
                 ダッシュボード
               </Link>
-              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
-                通報管理
+              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">
+                ユーザー管理
               </Link>
               <Link to="/admin/events" className="text-blue-600 font-medium">
                 イベント管理
+              </Link>
+              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
+                通報管理
               </Link>
             </nav>
           </div>
@@ -286,13 +361,39 @@ export function AdminEvents() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image">イベント画像URL</Label>
-                  <Input
+                  <Label htmlFor="image">イベント画像</Label>
+                  <input
+                    ref={fileInputRef}
                     id="image"
-                    placeholder="https://..."
-                    value={newEventImage}
-                    onChange={(e) => setNewEventImage(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={handleSelectImage}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors"
+                  >
+                    {newEventImage ? (
+                      <img
+                        src={newEventImage}
+                        alt="Event preview"
+                        className="mx-auto h-32 object-contain rounded-md"
+                      />
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {isUploading ? "アップロード中..." : "クリックして画像をアップロード"}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          PNG, JPG, GIF (最大 5MB)
+                        </p>
+                      </>
+                    )}
+                  </button>
+                  {imageError && <p className="text-xs text-red-600">{imageError}</p>}
                 </div>
                 <div className="flex gap-2 pt-4">
                   <Button
@@ -392,9 +493,11 @@ export function AdminEvents() {
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{event.title}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      {new Date(event.eventDate).toLocaleDateString("ja-JP")}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        {new Date(event.eventDate).toLocaleDateString("ja-JP")}
+                      </div>
                     </TableCell>
                     <TableCell>{event.organizer?.name || "Unknown"}</TableCell>
                     <TableCell>{event.participants?.length || 0}人</TableCell>
@@ -515,11 +618,38 @@ export function AdminEvents() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>イベント画像URL</Label>
-                <Input
-                  value={editFormData.imageURL || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, imageURL: e.target.value })}
+                <Label>イベント画像</Label>
+                <input
+                  ref={editFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditImageChange}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={handleEditSelectImage}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors"
+                >
+                  {editFormData.imageURL ? (
+                    <img
+                      src={editFormData.imageURL}
+                      alt="Event preview"
+                      className="mx-auto h-32 object-contain rounded-md"
+                    />
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        {isUploading ? "アップロード中..." : "クリックして画像をアップロード"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        PNG, JPG, GIF (最大 5MB)
+                      </p>
+                    </>
+                  )}
+                </button>
+                {imageError && <p className="text-xs text-red-600">{imageError}</p>}
               </div>
               <DialogFooter>
                 <Button onClick={handleUpdateEvent}>保存</Button>
@@ -546,417 +676,6 @@ export function AdminEvents() {
           )}
           <DialogFooter>
             <Button variant="destructive" onClick={handleDeleteEvent}>
-              削除
-            </Button>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              キャンセル
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Logo />
-            <nav className="hidden md:flex items-center gap-6">
-              <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
-                ダッシュボード
-              </Link>
-              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
-                通報管理
-              </Link>
-              <Link to="/admin/events" className="text-blue-600 font-medium">
-                イベント管理
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <HeaderActions />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">イベント管理</h1>
-            <p className="text-gray-600">イベントの作成、編集、削除</p>
-          </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                作成
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>新しいイベントを作成</DialogTitle>
-                <DialogDescription>
-                  イベントの詳細情報を入力してください
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">イベントタイトル</Label>
-                  <Input
-                    id="title"
-                    placeholder="スタートアップネットワーキング"
-                    value={newEventTitle}
-                    onChange={(e) => setNewEventTitle(e.target.value)}
-                  />
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">日付</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={newEventDate}
-                      onChange={(e) => setNewEventDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time">時間</Label>
-                    <Input id="time" type="time" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">場所</Label>
-                  <Input
-                    id="location"
-                    placeholder="東京、渋谷"
-                    value={newEventLocation}
-                    onChange={(e) => setNewEventLocation(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organizer">主催者</Label>
-                  <Input
-                    id="organizer"
-                    placeholder="JV Connect"
-                    value={newEventOrganizer}
-                    onChange={(e) => setNewEventOrganizer(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">詳細</Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    placeholder="イベントの詳細を入力..."
-                    value={newEventDescription}
-                    onChange={(e) => setNewEventDescription(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="image">イベント画像URL</Label>
-                  <Input
-                    id="image"
-                    placeholder="https://..."
-                    value={newEventImage}
-                    onChange={(e) => setNewEventImage(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    className="flex-1"
-                    disabled={!newEventTitle.trim() || !newEventDate.trim()}
-                    onClick={() => {
-                      const nextId = Math.max(0, ...events.map((e) => e.id)) + 1;
-                      setEvents((prev) => [
-                        {
-                          id: nextId,
-                          title: newEventTitle.trim(),
-                          date: newEventDate.trim(),
-                          organizer: newEventOrganizer.trim() || "JV Connect",
-                          participants: 0,
-                          status: "下書き",
-                          image: newEventImage.trim() || prev[0]?.image || "",
-                          description: newEventDescription.trim(),
-                          location: newEventLocation.trim(),
-                        },
-                        ...prev,
-                      ]);
-                      setIsCreateDialogOpen(false);
-                      setNewEventTitle("");
-                      setNewEventDate("");
-                      setNewEventOrganizer("JV Connect");
-                      setNewEventLocation("");
-                      setNewEventDescription("");
-                      setNewEventImage("");
-                    }}
-                  >
-                    作成
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setIsCreateDialogOpen(false)}
-                  >
-                    キャンセル
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                総イベント数
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">24</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                公開中
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-green-600">18</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                下書き
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-gray-600">6</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                総参加者数
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">1,245</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Events Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>イベント一覧</CardTitle>
-            <CardDescription>すべてのイベントを管理</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>画像</TableHead>
-                  <TableHead>タイトル</TableHead>
-                  <TableHead>日付</TableHead>
-                  <TableHead>主催者</TableHead>
-                  <TableHead>参加者</TableHead>
-                  <TableHead>ステータス</TableHead>
-                  <TableHead>アクション</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{event.title}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      {event.date}
-                    </TableCell>
-                    <TableCell>{event.organizer}</TableCell>
-                    <TableCell>{event.participants}人</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          event.status === "公開中" ? "default" : "secondary"
-                        }
-                        className={
-                          event.status === "公開中" ? "bg-green-500" : ""
-                        }
-                      >
-                        {event.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEdit(event.id)}
-                          aria-label="編集"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600"
-                          onClick={() => openDelete(event.id)}
-                          aria-label="削除"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>イベントを編集</DialogTitle>
-            <DialogDescription>タイトル、日時、場所、詳細を更新できます</DialogDescription>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>イベントタイトル</Label>
-                <Input
-                  value={selected.title}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, title: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>日付</Label>
-                  <Input
-                    value={selected.date}
-                    onChange={(e) =>
-                      setEvents((prev) =>
-                        prev.map((ev) => (ev.id === selected.id ? { ...ev, date: e.target.value } : ev)),
-                      )
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>ステータス</Label>
-                  <select
-                    className="w-full border rounded-md h-10 px-3"
-                    value={selected.status}
-                    onChange={(e) =>
-                      setEvents((prev) =>
-                        prev.map((ev) =>
-                          ev.id === selected.id ? { ...ev, status: e.target.value as AdminEvent["status"] } : ev,
-                        ),
-                      )
-                    }
-                  >
-                    <option value="公開中">公開中</option>
-                    <option value="下書き">下書き</option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>場所</Label>
-                <Input
-                  value={selected.location ?? ""}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, location: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>主催者</Label>
-                <Input
-                  value={selected.organizer}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, organizer: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>詳細</Label>
-                <Textarea
-                  rows={4}
-                  value={selected.description ?? ""}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, description: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>イベント画像URL</Label>
-                <Input
-                  value={selected.image}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, image: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <DialogFooter>
-                <Button onClick={() => setEditOpen(false)}>保存</Button>
-                <Button variant="outline" onClick={() => setEditOpen(false)}>
-                  キャンセル
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>イベントを削除しますか？</DialogTitle>
-            <DialogDescription>この操作は取り消せません</DialogDescription>
-          </DialogHeader>
-          {selected && (
-            <div className="text-sm text-gray-700">
-              対象: <span className="font-medium">{selected.title}</span>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedId) {
-                  setEvents((prev) => prev.filter((ev) => ev.id !== selectedId));
-                }
-                setDeleteOpen(false);
-                setSelectedId(null);
-              }}
-            >
               削除
             </Button>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>

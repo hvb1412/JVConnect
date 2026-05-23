@@ -9,7 +9,10 @@ const selectPublicUser = '-password -confirmCode';
 
 export const listUsers = async (req, res) => {
     try {
-        const users = await User.find().select(selectPublicUser).sort({ createdAt: -1 });
+        const users = await User.find({
+            role: { $ne: 'admin' },
+            email: { $ne: 'admin@jvconnect.com' }
+        }).select(selectPublicUser).sort({ createdAt: -1 });
         return res.status(200).json({ success: true, data: users });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -148,7 +151,8 @@ export const getReportById = async (req, res) => {
 
 export const approveReport = async (req, res) => {
     try {
-        const { banDays = 0, reason = '' } = req.body;
+        const { banDays = 7, reason = '' } = req.body;
+        const days = Number(banDays);
         const report = await Report.findById(req.params.id);
 
         if (!report) {
@@ -159,21 +163,27 @@ export const approveReport = async (req, res) => {
         report.decision = 'approved';
         report.decisionReason = reason;
         report.decisionDate = new Date();
-        report.decidedBy = req.user._id;
-        report.banDays = banDays;
+        report.decidedBy = req.user.id;
+        report.banDays = days;
         await report.save();
 
         // If reporting a user, apply ban
         if (report.user) {
             const user = await User.findById(report.user);
             if (user) {
-                if (banDays > 0) {
-                    const banUntil = new Date();
-                    banUntil.setDate(banUntil.getDate() + banDays);
-                    user.isRestricted = true;
+                const now = new Date();
+                user.isRestricted = true;
+                user.latestBanDate = now;
+
+                if (days <= 0) {
+                    // Permanent ban — no expiry
+                    user.restrictedUntil = null;
+                } else {
+                    const banUntil = new Date(now);
+                    banUntil.setDate(banUntil.getDate() + days);
                     user.restrictedUntil = banUntil;
-                    await user.save();
                 }
+                await user.save();
             }
         }
 
@@ -206,7 +216,7 @@ export const rejectReport = async (req, res) => {
         report.decision = 'rejected';
         report.decisionReason = reason;
         report.decisionDate = new Date();
-        report.decidedBy = req.user._id;
+        report.decidedBy = req.user.id;
         await report.save();
 
         const updatedReport = await Report.findById(req.params.id)
@@ -297,7 +307,7 @@ export const createEventByAdmin = async (req, res) => {
             detail: detail || '',
             imageURL: imageURL || '',
             status: status || 'active',
-            organizer: organizer || req.user._id,
+            organizer: organizer || req.user.id,
         });
 
         const populatedEvent = await Event.findById(event._id).populate('organizer', 'name email avatarURL');

@@ -156,10 +156,18 @@ export async function updateUserProfile(profileData: {
     return mapBackendUserToUi(response.data.data);
 }
 
-export async function changeUserPassword(currentPassword: string, newPassword: string): Promise<void> {
+export async function requestChangePasswordOtp(currentPassword: string): Promise<void> {
+    await api.post(
+        `/users/profile/password/otp`,
+        { currentPassword },
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function changeUserPassword(currentPassword: string, newPassword: string, otp: string): Promise<void> {
     await api.put(
         `/users/profile/password`,
-        { currentPassword, newPassword },
+        { currentPassword, newPassword, otp },
         { headers: getAuthHeader() },
     );
 }
@@ -253,4 +261,42 @@ export async function getFriendStatus(
         { headers: getAuthHeader() },
     );
     return response.data.data;
+}
+
+// ─── Report APIs ──────────────────────────────────────────────────────────────
+
+export async function submitUserReport(params: {
+    userId: string;
+    reportType: string;
+    reason: string;
+    detail?: string;
+}): Promise<void> {
+    await api.post(
+        '/reports',
+        {
+            userId: params.userId,
+            reportType: params.reportType,
+            reason: params.reason,
+            detail: params.detail || '',
+        },
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function submitEventReport(params: {
+    eventId: string;
+    reportType: string;
+    reason: string;
+    detail?: string;
+}): Promise<void> {
+    await api.post(
+        '/reports',
+        {
+            eventId: params.eventId,
+            reportType: params.reportType,
+            reason: params.reason,
+            detail: params.detail || '',
+        },
+        { headers: getAuthHeader() },
+    );
 }
