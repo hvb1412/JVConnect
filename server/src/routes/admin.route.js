@@ -7,6 +7,7 @@ import {
     listAdmins,
     listReports,
     listUsers,
+    getUserRegistrationStats,
     getReportById,
     approveReport,
     rejectReport,
@@ -28,6 +29,7 @@ router.get('/overview', getAdminOverview);
 router.get('/stats', getAdminStats);
 
 // Users
+router.get('/users/stats', getUserRegistrationStats);
 router.get('/users', listUsers);
 router.get('/users/:userId', getUserById);
 router.post('/users/:userId/restriction', toggleUserRestriction);
