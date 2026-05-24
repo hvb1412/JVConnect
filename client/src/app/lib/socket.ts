@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
+import { SOCKET_URL } from "./config";
 
 let socket: Socket | null = null;
-const SOCKET_URL = "http://localhost:5000";
 
 export const initSocket = (userId: string) => {
     if (!userId) return null;

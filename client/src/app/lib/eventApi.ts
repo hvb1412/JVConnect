@@ -40,8 +40,10 @@ type ApiResponse<T> = {
     data: T;
 };
 
+import { API_ENDPOINT } from "./config";
+
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: API_ENDPOINT,
 });
 
 const getAuthHeader = () => {
