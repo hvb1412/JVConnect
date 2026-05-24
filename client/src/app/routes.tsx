@@ -32,7 +32,7 @@ function UserGuard({ children }: { children: React.ReactNode }) {
         }
 
         axios
-            .get("http://localhost:5000/api/auth/me", {
+            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : "http://localhost:5000"}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => {

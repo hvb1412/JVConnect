@@ -16,7 +16,12 @@ async function fetchBanInfo(): Promise<BanInfo | null> {
     const token = localStorage.getItem("token");
     if (!token) return null;
     try {
-        const res = await axios.get("http://localhost:5000/api/auth/me", {
+        const apiBase = import.meta.env.VITE_API_URL
+            ? import.meta.env.VITE_API_URL.startsWith("http")
+                ? import.meta.env.VITE_API_URL
+                : `https://${import.meta.env.VITE_API_URL}`
+            : "http://localhost:5000";
+        const res = await axios.get(`${apiBase}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = res.data?.data;
