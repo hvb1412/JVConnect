@@ -19,6 +19,48 @@ export const listUsers = async (req, res) => {
     }
 };
 
+export const getUserRegistrationStats = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments({
+            role: { $ne: 'admin' },
+            email: { $ne: 'admin@jvconnect.com' }
+        });
+
+        // Get registrations for the last 30 days (daily stats)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const newRegistrations = await User.aggregate([
+            {
+                $match: {
+                    role: { $ne: 'admin' },
+                    email: { $ne: 'admin@jvconnect.com' },
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { _id: 1 } // Sort by date ascending
+            }
+        ]);
+
+        return res.status(200).json({ 
+            success: true, 
+            data: { 
+                totalUsers, 
+                newRegistrations // [{ _id: '2023-10-01', count: 5 }, ...]
+            } 
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const listAdmins = async (req, res) => {
     try {
         const admins = await User.find({
