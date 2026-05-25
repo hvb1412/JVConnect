@@ -160,7 +160,21 @@ export const getAdminOverview = async (req, res) => {
 
 export const listReports = async (req, res) => {
     try {
-        const reports = await Report.find()
+        const { status } = req.query;
+        const allowedStatuses = ['pending', 'approved', 'rejected'];
+        const query = {};
+
+        if (status) {
+            if (!allowedStatuses.includes(String(status))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid status filter',
+                });
+            }
+            query.decision = String(status);
+        }
+
+        const reports = await Report.find(query)
             .populate('reporter', 'name email avatarURL')
             .populate('user', 'name email avatarURL')
             .populate('event', 'title imageURL status')
