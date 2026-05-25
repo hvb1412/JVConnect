@@ -72,8 +72,15 @@ export function GuestRegister() {
   };
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password) {
+    const normalizedEmail = email.trim();
+
+    if (!name.trim() || !normalizedEmail || !password) {
       setRegisterError("必須項目を入力してください。");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setRegisterError("有効なメールアドレスを入力してください。");
       return;
     }
 
@@ -85,7 +92,8 @@ export function GuestRegister() {
     try {
       setIsLoading(true);
       setRegisterError("");
-      await registerUser(name, email, password, avatarUrl);
+      await registerUser(name, normalizedEmail, password, avatarUrl);
+      setEmail(normalizedEmail);
       setStep(2);
       setResendTimer(60); // 60 seconds countdown
     } catch (error: any) {
