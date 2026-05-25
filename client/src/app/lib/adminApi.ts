@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_ENDPOINT } from "./config";
 
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: API_ENDPOINT,
 });
 
 // Add token to requests
@@ -24,6 +25,14 @@ export type AdminStats = {
     totalConversations: number;
     totalMessages: number;
     totalParticipations: number;
+};
+
+export type UserRegistrationStats = {
+    totalUsers: number;
+    newRegistrations: {
+        _id: string; // Date string format YYYY-MM-DD
+        count: number;
+    }[];
 };
 
 export type AdminUser = {
@@ -150,6 +159,21 @@ export async function listUsers(): Promise<AdminUser[]> {
             return response.data.data;
         }
         throw new Error("Failed to fetch users");
+    } catch (error: any) {
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw error;
+    }
+}
+
+export async function getUserRegistrationStats(): Promise<UserRegistrationStats> {
+    try {
+        const response = await api.get<{ success: boolean; data: UserRegistrationStats }>("/admin/users/stats");
+        if (response.data.success) {
+            return response.data.data;
+        }
+        throw new Error("Failed to fetch user registration stats");
     } catch (error: any) {
         if (error.response?.data?.message) {
             throw new Error(error.response.data.message);

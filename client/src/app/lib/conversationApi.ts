@@ -14,7 +14,7 @@ export type BackendMessage = {
     sendTime: string;
     createdAt: string;
     seenStatus?: boolean;
-    conversation?: { _id: string };
+    conversation?: { _id: string; status?: string; initiator?: string };
 };
 
 export type BackendConversationSummary = {
@@ -22,6 +22,8 @@ export type BackendConversationSummary = {
     partner: BackendUser;
     latestMessage: BackendMessage | null;
     unreadCount: number;
+    status: "pending" | "accepted";
+    initiator: string | null;
     createdAt: string;
     updatedAt: string;
 };
@@ -31,6 +33,8 @@ export type BackendConversationDetail = {
         _id: string;
         user1: BackendUser;
         user2: BackendUser;
+        status: "pending" | "accepted";
+        initiator: string | null;
         latestMessage: BackendMessage | null;
         unreadCount: number;
         createdAt: string;
@@ -47,6 +51,8 @@ export type UiConversation = {
     lastMessage: string;
     time: string;
     unread: number;
+    isPending: boolean;
+    initiatorId: string | null;
 };
 
 export type UiConversationMessage = {
@@ -57,8 +63,10 @@ export type UiConversationMessage = {
     avatar?: string;
 };
 
+import { API_ENDPOINT } from "./config";
+
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: API_ENDPOINT,
 });
 
 const getAuthHeader = () => {
@@ -97,6 +105,8 @@ const mapConversation = (
             latestMessage?.createdAt || conversation.updatedAt,
         ),
         unread: conversation.unreadCount || 0,
+        isPending: conversation.status === "pending",
+        initiatorId: conversation.initiator ?? null,
     };
 };
 
@@ -140,7 +150,12 @@ export async function sendMessage(
 
     const response = await api.post<{
         success: boolean;
-        data: { message: BackendMessage; receiverId: string };
+        data: {
+            message: BackendMessage;
+            receiverId: string;
+            conversationStatus: string;
+            conversationId: string;
+        };
     }>("/messages", payload, {
         headers: getAuthHeader(),
     });
@@ -159,15 +174,27 @@ export async function getConversations(): Promise<UiConversation[]> {
     return data.map(mapConversation);
 }
 
+export async function getPendingConversations(): Promise<UiConversation[]> {
+    const response = await api.get<{
+        success: boolean;
+        data: BackendConversationSummary[];
+    }>("/conversations/pending", { headers: getAuthHeader() });
+
+    const data = Array.isArray(response.data?.data) ? response.data.data : [];
+    return data.map(mapConversation);
+}
+
 export type ConversationDetailResponse = {
     partner: BackendUser;
     conversationId: string;
+    isPending: boolean;
+    initiatorId: string | null;
     messages: UiConversationMessage[];
 };
 
 export async function getConversationWithUser(
     partnerUserId: string,
-): Promise<{ conversationId: string; partner: BackendUser }> {
+): Promise<{ conversationId: string; partner: BackendUser; isPending: boolean; initiatorId: string | null }> {
     const response = await api.get<{
         success: boolean;
         data: {
@@ -175,6 +202,8 @@ export async function getConversationWithUser(
                 _id: string;
                 user1: BackendUser;
                 user2: BackendUser;
+                status: "pending" | "accepted";
+                initiator: string | null;
             };
             partner: BackendUser;
         };
@@ -186,6 +215,8 @@ export async function getConversationWithUser(
     return {
         conversationId: data.conversation._id,
         partner: data.partner,
+        isPending: data.conversation.status === "pending",
+        initiatorId: data.conversation.initiator ?? null,
     };
 }
 
@@ -211,8 +242,24 @@ export async function getConversationMessages(
     return {
         partner,
         conversationId: conversation._id,
+        isPending: conversation.status === "pending",
+        initiatorId: conversation.initiator ?? null,
         messages: mapMessages(detail.messages, currentUserId, avatar),
     };
+}
+
+export async function acceptMessageRequest(conversationId: string): Promise<void> {
+    await api.patch(
+        `/conversations/${conversationId}/accept`,
+        {},
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function declineMessageRequest(conversationId: string): Promise<void> {
+    await api.delete(`/conversations/${conversationId}/decline`, {
+        headers: getAuthHeader(),
+    });
 }
 
 export async function markConversationAsRead(conversationId: string): Promise<void> {

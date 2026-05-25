@@ -40,6 +40,7 @@ export const sendMessage = async (req, res) => {
 
         let conversation;
         let targetReceiverId = receiverId;
+        let isPending = false;
 
         if (conversationId) {
             conversation = await Conversation.findById(conversationId);
@@ -60,6 +61,17 @@ export const sendMessage = async (req, res) => {
                     success: false,
                     message: 'You are not part of this conversation',
                 });
+            }
+
+            // Nếu conversation đang pending, chỉ initiator (người gửi ban đầu) được nhắn thêm
+            if (conversation.status === 'pending') {
+                if (String(conversation.initiator) !== String(senderId)) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Message request has not been accepted yet',
+                    });
+                }
+                isPending = true;
             }
 
             targetReceiverId =
@@ -89,13 +101,7 @@ export const sendMessage = async (req, res) => {
                 ],
             });
 
-            if (!isFriend) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Can only send messages to friends',
-                });
-            }
-
+            // Tìm hoặc tạo conversation
             conversation = await Conversation.findOne({
                 $or: [
                     { user1: senderId, user2: receiverId },
@@ -107,7 +113,22 @@ export const sendMessage = async (req, res) => {
                 conversation = await Conversation.create({
                     user1: senderId,
                     user2: receiverId,
+                    status: isFriend ? 'accepted' : 'pending',
+                    initiator: isFriend ? null : senderId,
                 });
+                isPending = !isFriend;
+            } else {
+                // Nếu conversation pending mà người nhận cố gửi lại → từ chối
+                if (
+                    conversation.status === 'pending' &&
+                    String(conversation.initiator) !== String(senderId)
+                ) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Message request has not been accepted yet',
+                    });
+                }
+                isPending = conversation.status === 'pending';
             }
         }
 
@@ -123,14 +144,17 @@ export const sendMessage = async (req, res) => {
 
         const populatedMessage = await Message.findById(message._id)
             .populate('sender', 'name email avatarURL')
-            .populate('conversation', 'user1 user2');
+            .populate('conversation', 'user1 user2 status initiator');
 
-        // Socket: Gửi tin nhắn real-time cho người nhận nếu đang online
+        // Socket: emit khác nhau tùy theo pending hay accepted
         const receiverSocketId = getReceiverSocketId(String(targetReceiverId));
         if (receiverSocketId) {
-            getIO().to(receiverSocketId).emit('receive_message', {
+            const eventName = isPending ? 'message_request' : 'receive_message';
+            getIO().to(receiverSocketId).emit(eventName, {
                 message: populatedMessage,
                 receiverId: targetReceiverId,
+                conversationStatus: conversation.status,
+                conversationId: conversation._id,
             });
         }
 
@@ -139,6 +163,8 @@ export const sendMessage = async (req, res) => {
             data: {
                 message: populatedMessage,
                 receiverId: targetReceiverId,
+                conversationStatus: conversation.status,
+                conversationId: conversation._id,
             },
         });
     } catch (error) {

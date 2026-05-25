@@ -1,17 +1,25 @@
 import User from "../models/User.js";
 import Friend from "../models/Friend.js";
+import FriendRequest from "../models/FriendRequest.js";
+import Participation from "../models/Participation.js";
+import Conversation from "../models/Conversation.js";
+import Message from "../models/Message.js";
+import Report from "../models/Report.js";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendEmail, getOtpEmailTemplate } from "../utils/sendEmail.js";
+
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'jvconnect_secret_key_123456';
 
 const getAuthUserIdFromHeader = (req) => {
     const authHeader = req.headers.authorization;
-
     if (!authHeader) return null;
-
     const token = authHeader.split(" ")[1];
     if (!token) return null;
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         return decoded?.id || decoded?.userId || null;
     } catch {
         return null;
@@ -20,9 +28,9 @@ const getAuthUserIdFromHeader = (req) => {
 
 export const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select(
-            "-password -confirmCode",
-        );
+        const { id } = req.params;
+
+        const user = await User.findById(id).select("-password -confirmCode");
 
         if (!user) {
             return res.status(404).json({
@@ -31,11 +39,27 @@ export const getUserById = async (req, res) => {
             });
         }
 
+        const friendCount = await Friend.countDocuments({
+            $or: [{ user1: id }, { user2: id }],
+        });
+
+        const eventsAttended = await Participation.countDocuments({ user: id });
+
         return res.status(200).json({
             success: true,
-            data: user,
+            data: {
+                ...user.toObject(),
+                friendCount,
+                eventsAttended,
+            },
         });
     } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID",
+            });
+        }
         return res.status(500).json({
             success: false,
             message: error.message,
@@ -57,6 +81,7 @@ export const updateProfile = async (req, res) => {
                 area,
                 occupation,
                 introduction,
+                needsProfileUpdate: false,
             },
             {
                 returnDocument: 'after',
@@ -73,6 +98,167 @@ export const updateProfile = async (req, res) => {
         return res.status(200).json({
             success: true,
             data: updatedUser,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+export const requestPasswordChangeOtp = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { currentPassword } = req.body;
+
+        if (!currentPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "現在のパスワードを入力してください",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const passwordMatches = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatches) {
+            return res.status(401).json({
+                success: false,
+                message: "現在のパスワードが正しくありません",
+            });
+        }
+
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
+
+        const html = getOtpEmailTemplate(user.name, otp, 'パスワード変更の確認');
+        await sendEmail(user.email, 'パスワード変更の確認コード (JVConnect)', html);
+
+        return res.status(200).json({
+            success: true,
+            message: "確認コードをメールに送信しました",
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+export const updatePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { currentPassword, newPassword, otp } = req.body;
+
+        if (!currentPassword || !newPassword || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "現在のパスワード、新しいパスワード、確認コードを入力してください",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const passwordMatches = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatches) {
+            return res.status(401).json({
+                success: false,
+                message: "現在のパスワードが正しくありません",
+            });
+        }
+
+        if (user.otp !== otp) {
+            return res.status(400).json({
+                success: false,
+                message: "確認コードが正しくありません",
+            });
+        }
+
+        if (user.otpExpires < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "確認コードの有効期限が切れています",
+            });
+        }
+
+        user.password = newPassword;
+        user.otp = null;
+        user.otpExpires = null;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "パスワードを変更しました",
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+export const deleteProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const user = await User.findByIdAndDelete(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        await Friend.deleteMany({
+            $or: [{ user1: userId }, { user2: userId }],
+        });
+        await FriendRequest.deleteMany({
+            $or: [{ sender: userId }, { receiver: userId }],
+        });
+        await Participation.deleteMany({ user: userId });
+
+        const conversations = await Conversation.find({
+            $or: [{ user1: userId }, { user2: userId }],
+        });
+        const conversationIds = conversations.map((conversation) => conversation._id);
+
+        await Message.deleteMany({
+            $or: [
+                { sender: userId },
+                { conversation: { $in: conversationIds } },
+            ],
+        });
+        await Conversation.deleteMany({ _id: { $in: conversationIds } });
+        await Report.deleteMany({
+            $or: [
+                { reporter: userId },
+                { user: userId },
+                { decidedBy: userId },
+            ],
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "アカウントを削除しました",
         });
     } catch (error) {
         return res.status(500).json({
@@ -127,6 +313,8 @@ export const searchUsers = async (req, res) => {
         if (currentUserId) {
             query._id = { $ne: currentUserId };
         }
+
+        query.role = { $ne: 'admin' };
 
         const users = await User.find(query).select("-password -confirmCode");
 
