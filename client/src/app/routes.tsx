@@ -64,6 +64,46 @@ function UserGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
+/**
+ * Wraps any admin page.
+ * - If not logged in → /guest/login
+ * - If not admin → /user/home
+ * - Otherwise renders children
+ */
+function AdminGuard({ children }: { children: React.ReactNode }) {
+    const [status, setStatus] = useState<"checking" | "ok" | "no-token" | "not-admin">("checking");
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setStatus("no-token");
+            return;
+        }
+
+        axios
+            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : "http://localhost:5000"}/api/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+                const role = res.data?.data?.role;
+                if (role === "admin") {
+                    setStatus("ok");
+                } else {
+                    setStatus("not-admin");
+                }
+            })
+            .catch(() => {
+                const cachedRole = localStorage.getItem("role");
+                setStatus(cachedRole === "admin" ? "ok" : "not-admin");
+            });
+    }, []);
+
+    if (status === "checking") return null;
+    if (status === "no-token") return <Navigate to="/guest/login" replace />;
+    if (status === "not-admin") return <Navigate to="/user/home" replace />;
+    return <>{children}</>;
+}
+
 // ─── Screen imports ───────────────────────────────────────────────────────────
 
 import { GuestLogin } from "./screens/GuestLogin";
@@ -96,6 +136,14 @@ function G(Component: React.ComponentType) {
     );
 }
 
+function A(Component: React.ComponentType) {
+    return () => (
+        <AdminGuard>
+            <Component />
+        </AdminGuard>
+    );
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export const router = createBrowserRouter([
@@ -123,8 +171,8 @@ export const router = createBrowserRouter([
     { path: "/user/reported", Component: UserReportRestricted },
 
     // Admin
-    { path: "/admin/dashboard", Component: AdminDashboard },
-    { path: "/admin/reports", Component: AdminReports },
-    { path: "/admin/users", Component: AdminUsers },
-    { path: "/admin/events", Component: AdminEvents },
+    { path: "/admin/dashboard", Component: A(AdminDashboard) },
+    { path: "/admin/reports", Component: A(AdminReports) },
+    { path: "/admin/users", Component: A(AdminUsers) },
+    { path: "/admin/events", Component: A(AdminEvents) },
 ]);

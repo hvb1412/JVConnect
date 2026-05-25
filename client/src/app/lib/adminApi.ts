@@ -229,9 +229,11 @@ export async function deleteUser(userId: string): Promise<void> {
 }
 
 // Reports
-export async function listReports(): Promise<AdminReport[]> {
+export async function listReports(status?: "pending" | "approved" | "rejected"): Promise<AdminReport[]> {
     try {
-        const response = await api.get<{ success: boolean; data: AdminReport[] }>("/admin/reports");
+        const response = await api.get<{ success: boolean; data: AdminReport[] }>("/admin/reports", {
+            params: status ? { status } : undefined,
+        });
         if (response.data.success) {
             return response.data.data;
         }
