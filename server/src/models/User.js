@@ -39,12 +39,36 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        needsProfileUpdate: {
+            type: Boolean,
+            default: false,
+        },
         role: {
             type: String,
             enum: ['user', 'admin'],
             default: 'user',
         },
         latestBanDate: {
+            type: Date,
+            default: null,
+        },
+        isRestricted: {
+            type: Boolean,
+            default: false,
+        },
+        restrictedUntil: {
+            type: Date,
+            default: null,
+        },
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+        otp: {
+            type: String,
+            default: null,
+        },
+        otpExpires: {
             type: Date,
             default: null,
         },

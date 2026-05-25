@@ -12,6 +12,19 @@ const conversationSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        // 'pending' = message request chưa được chấp nhận
+        // 'accepted' = cuộc trò chuyện bình thường
+        status: {
+            type: String,
+            enum: ['pending', 'accepted'],
+            default: 'accepted',
+        },
+        // Người khởi tạo conversation (người gửi message request)
+        initiator: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
     },
     {
         timestamps: true,

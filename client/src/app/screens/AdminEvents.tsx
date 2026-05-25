@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
-import { LanguageToggle } from "../components/LanguageToggle";
+import { HeaderActions } from "../components/HeaderActions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
-import { Plus, Edit, Trash2, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,90 +19,228 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-
-type AdminEvent = {
-  id: number;
-  title: string;
-  date: string;
-  organizer: string;
-  participants: number;
-  status: "公開中" | "下書き";
-  image: string;
-  description?: string;
-  location?: string;
-};
-
-const initialEvents: AdminEvent[] = [
-  {
-    id: 1,
-    title: "スタートアップネットワーキング",
-    date: "2026年4月15日",
-    organizer: "JV Connect",
-    participants: 45,
-    status: "公開中",
-    image: "https://images.unsplash.com/photo-1675716921224-e087a0cca69a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFydHVwJTIwbmV0d29ya2luZ3xlbnwxfHx8fDE3NzQ5ODgxMjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    location: "東京、渋谷",
-    description: "スタートアップ向けネットワーキングイベントです。",
-  },
-  {
-    id: 2,
-    title: "ビジネステックカンファレンス 2026",
-    date: "2026年4月22日",
-    organizer: "テックビジネス協会",
-    participants: 120,
-    status: "公開中",
-    image: "https://images.unsplash.com/photo-1765438863717-49fca900f861?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwc2VtaW5hcnxlbnwxfHx8fDE3NzQ5ODgxMjV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    location: "大阪、梅田",
-    description: "最新のビジネステクノロジーを学ぶカンファレンスです。",
-  },
-  {
-    id: 3,
-    title: "チームワークショップ",
-    date: "2026年5月5日",
-    organizer: "ビジネススキルアカデミー",
-    participants: 30,
-    status: "下書き",
-    image: "https://images.unsplash.com/photo-1649252504727-45c70cffe143?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwd29ya3Nob3AlMjBtZWV0aW5nfGVufDF8fHx8MTc3NDk4ODEyNXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    location: "京都、四条",
-    description: "効果的なコラボレーションを学ぶワークショップです。",
-  },
-  {
-    id: 4,
-    title: "コミュニティミートアップ",
-    date: "2026年5月12日",
-    organizer: "名古屋ビジネスコミュニティ",
-    participants: 60,
-    status: "公開中",
-    image: "https://images.unsplash.com/photo-1764712097778-78563f8911f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBtZWV0dXB8ZW58MXx8fHwxNzc0ODY1Mzc0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    location: "名古屋、栄",
-    description: "地域のプロフェッショナルが集まるミートアップです。",
-  },
-];
+import {
+  listAdminEvents,
+  createAdminEvent,
+  updateAdminEvent,
+  deleteAdminEvent,
+  AdminEvent,
+} from "../lib/adminApi";
+import { uploadImageByUrl } from "../lib/uploadApi";
 
 export function AdminEvents() {
-  const [events, setEvents] = useState<AdminEvent[]>(initialEvents);
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
+  const [newEventStartTime, setNewEventStartTime] = useState("");
+  const [newEventEndTime, setNewEventEndTime] = useState("");
   const [newEventDescription, setNewEventDescription] = useState("");
   const [newEventLocation, setNewEventLocation] = useState("");
-  const [newEventOrganizer, setNewEventOrganizer] = useState("JV Connect");
   const [newEventImage, setNewEventImage] = useState("");
+  const [newEventStatus, setNewEventStatus] = useState<"active" | "draft">("draft");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<AdminEvent>>({});
 
-  const selected = selectedId ? events.find((e) => e.id === selectedId) ?? null : null;
+  const selected = selectedId ? events.find((e) => e._id === selectedId) : null;
 
-  const openEdit = (id: number) => {
-    setSelectedId(id);
-    setEditOpen(true);
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const handleSelectImage = () => {
+    fileInputRef.current?.click();
   };
-  const openDelete = (id: number) => {
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("ファイルサイズは5MB以内にしてください。");
+      return;
+    }
+
+    setImageError("");
+    setIsUploading(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageByUrl(dataUrl);
+      setNewEventImage(result.secure_url);
+    } catch (error: any) {
+      setImageError(error?.message || "アップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleEditSelectImage = () => {
+    editFileInputRef.current?.click();
+  };
+
+  const handleEditImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("ファイルサイズは5MB以内にしてください。");
+      return;
+    }
+
+    setImageError("");
+    setIsUploading(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadImageByUrl(dataUrl);
+      setEditFormData({ ...editFormData, imageURL: result.secure_url });
+    } catch (error: any) {
+      setImageError(error?.message || "アップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const data = await listAdminEvents();
+      setEvents(data);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Failed to load events");
+      console.error("Error fetching events:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!newEventTitle.trim() || !newEventDate.trim() || !newEventLocation.trim()) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      const newEvent = await createAdminEvent({
+        title: newEventTitle.trim(),
+        eventDate: new Date(newEventDate).toISOString(),
+        startTime: newEventStartTime,
+        endTime: newEventEndTime,
+        location: newEventLocation.trim(),
+        detail: newEventDescription.trim(),
+        imageURL: newEventImage.trim(),
+        status: newEventStatus,
+      });
+
+      setEvents([newEvent, ...events]);
+      setIsCreateDialogOpen(false);
+      setNewEventTitle("");
+      setNewEventDate("");
+      setNewEventStartTime("");
+      setNewEventEndTime("");
+      setNewEventDescription("");
+      setNewEventLocation("");
+      setNewEventImage("");
+      setNewEventStatus("draft");
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Failed to create event");
+      console.error("Error creating event:", err);
+    }
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!selectedId || !selected) return;
+
+    try {
+      const updated = await updateAdminEvent(selectedId, {
+        ...editFormData,
+        eventDate: editFormData.eventDate
+          ? typeof editFormData.eventDate === "string"
+            ? editFormData.eventDate
+            : new Date(editFormData.eventDate).toISOString()
+          : selected.eventDate,
+      });
+
+      setEvents(events.map((e) => (e._id === selectedId ? updated : e)));
+      setEditOpen(false);
+      setSelectedId(null);
+      setEditFormData({});
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Failed to update event");
+      console.error("Error updating event:", err);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!selectedId) return;
+
+    try {
+      await deleteAdminEvent(selectedId);
+      setEvents(events.filter((e) => e._id !== selectedId));
+      setDeleteOpen(false);
+      setSelectedId(null);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Failed to delete event");
+      console.error("Error deleting event:", err);
+    }
+  };
+
+  const openEdit = (id: string) => {
+    const event = events.find((e) => e._id === id);
+    if (event) {
+      setSelectedId(id);
+      setEditFormData({ ...event });
+      setEditOpen(true);
+    }
+  };
+
+  const openDelete = (id: string) => {
     setSelectedId(id);
     setDeleteOpen(true);
   };
+
+  const totalEvents = events.length;
+  const activeEvents = events.filter((e) => e.status === "active").length;
+  const draftEvents = events.filter((e) => e.status === "draft").length;
+  const totalParticipants = events.reduce((sum, e) => sum + (e.participants?.length || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,16 +253,19 @@ export function AdminEvents() {
               <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
                 ダッシュボード
               </Link>
-              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
-                通報管理
+              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">
+                ユーザー管理
               </Link>
               <Link to="/admin/events" className="text-blue-600 font-medium">
                 イベント管理
               </Link>
+              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
+                通報管理
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <LanguageToggle />
+            <HeaderActions />
           </div>
         </div>
       </header>
@@ -146,13 +287,11 @@ export function AdminEvents() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>新しいイベントを作成</DialogTitle>
-                <DialogDescription>
-                  イベントの詳細情報を入力してください
-                </DialogDescription>
+                <DialogDescription>イベントの詳細情報を入力してください</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">イベントタイトル</Label>
+                  <Label htmlFor="title">イベントタイトル*</Label>
                   <Input
                     id="title"
                     placeholder="スタートアップネットワーキング"
@@ -162,7 +301,7 @@ export function AdminEvents() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date">日付</Label>
+                    <Label htmlFor="date">日付*</Label>
                     <Input
                       id="date"
                       type="date"
@@ -171,26 +310,44 @@ export function AdminEvents() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="time">時間</Label>
-                    <Input id="time" type="time" />
+                    <Label htmlFor="status">ステータス</Label>
+                    <select
+                      className="w-full border rounded-md h-10 px-3"
+                      value={newEventStatus}
+                      onChange={(e) => setNewEventStatus(e.target.value as "active" | "draft")}
+                    >
+                      <option value="draft">下書き</option>
+                      <option value="active">公開中</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">開始時間</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={newEventStartTime}
+                      onChange={(e) => setNewEventStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime">終了時間</Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={newEventEndTime}
+                      onChange={(e) => setNewEventEndTime(e.target.value)}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="location">場所</Label>
+                  <Label htmlFor="location">場所*</Label>
                   <Input
                     id="location"
                     placeholder="東京、渋谷"
                     value={newEventLocation}
                     onChange={(e) => setNewEventLocation(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organizer">主催者</Label>
-                  <Input
-                    id="organizer"
-                    placeholder="JV Connect"
-                    value={newEventOrganizer}
-                    onChange={(e) => setNewEventOrganizer(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -204,42 +361,45 @@ export function AdminEvents() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="image">イベント画像URL</Label>
-                  <Input
+                  <Label htmlFor="image">イベント画像</Label>
+                  <input
+                    ref={fileInputRef}
                     id="image"
-                    placeholder="https://..."
-                    value={newEventImage}
-                    onChange={(e) => setNewEventImage(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={handleSelectImage}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors"
+                  >
+                    {newEventImage ? (
+                      <img
+                        src={newEventImage}
+                        alt="Event preview"
+                        className="mx-auto h-32 object-contain rounded-md"
+                      />
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                        <p className="mt-2 text-sm text-gray-600">
+                          {isUploading ? "アップロード中..." : "クリックして画像をアップロード"}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          PNG, JPG, GIF (最大 5MB)
+                        </p>
+                      </>
+                    )}
+                  </button>
+                  {imageError && <p className="text-xs text-red-600">{imageError}</p>}
                 </div>
                 <div className="flex gap-2 pt-4">
                   <Button
                     className="flex-1"
-                    disabled={!newEventTitle.trim() || !newEventDate.trim()}
-                    onClick={() => {
-                      const nextId = Math.max(0, ...events.map((e) => e.id)) + 1;
-                      setEvents((prev) => [
-                        {
-                          id: nextId,
-                          title: newEventTitle.trim(),
-                          date: newEventDate.trim(),
-                          organizer: newEventOrganizer.trim() || "JV Connect",
-                          participants: 0,
-                          status: "下書き",
-                          image: newEventImage.trim() || prev[0]?.image || "",
-                          description: newEventDescription.trim(),
-                          location: newEventLocation.trim(),
-                        },
-                        ...prev,
-                      ]);
-                      setIsCreateDialogOpen(false);
-                      setNewEventTitle("");
-                      setNewEventDate("");
-                      setNewEventOrganizer("JV Connect");
-                      setNewEventLocation("");
-                      setNewEventDescription("");
-                      setNewEventImage("");
-                    }}
+                    disabled={!newEventTitle.trim() || !newEventDate.trim() || !newEventLocation.trim()}
+                    onClick={handleCreateEvent}
                   >
                     作成
                   </Button>
@@ -256,46 +416,44 @@ export function AdminEvents() {
           </Dialog>
         </div>
 
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                総イベント数
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">総イベント数</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">24</p>
+              <p className="text-3xl font-bold">{totalEvents}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                公開中
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">公開中</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-green-600">18</p>
+              <p className="text-3xl font-bold text-green-600">{activeEvents}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                下書き
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">下書き</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-600">6</p>
+              <p className="text-3xl font-bold text-gray-600">{draftEvents}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600">
-                総参加者数
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">総参加者数</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">1,245</p>
+              <p className="text-3xl font-bold">{totalParticipants}</p>
             </CardContent>
           </Card>
         </div>
@@ -321,31 +479,34 @@ export function AdminEvents() {
               </TableHeader>
               <TableBody>
                 {events.map((event) => (
-                  <TableRow key={event.id}>
+                  <TableRow key={event._id}>
                     <TableCell>
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-16 h-16 object-cover rounded"
-                      />
+                      {event.imageURL && (
+                        <img
+                          src={event.imageURL}
+                          alt={event.title}
+                          className="w-16 h-16 object-cover rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">{event.title}</TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      {event.date}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        {new Date(event.eventDate).toLocaleDateString("ja-JP")}
+                      </div>
                     </TableCell>
-                    <TableCell>{event.organizer}</TableCell>
-                    <TableCell>{event.participants}人</TableCell>
+                    <TableCell>{event.organizer?.name || "Unknown"}</TableCell>
+                    <TableCell>{event.participants?.length || 0}人</TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          event.status === "公開中" ? "default" : "secondary"
-                        }
-                        className={
-                          event.status === "公開中" ? "bg-green-500" : ""
-                        }
+                        variant={event.status === "active" ? "default" : "secondary"}
+                        className={event.status === "active" ? "bg-green-500" : ""}
                       >
-                        {event.status}
+                        {event.status === "active" ? "公開中" : "下書き"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -353,7 +514,7 @@ export function AdminEvents() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openEdit(event.id)}
+                          onClick={() => openEdit(event._id)}
                           aria-label="編集"
                         >
                           <Edit className="h-4 w-4" />
@@ -362,7 +523,7 @@ export function AdminEvents() {
                           size="sm"
                           variant="outline"
                           className="text-red-600"
-                          onClick={() => openDelete(event.id)}
+                          onClick={() => openDelete(event._id)}
                           aria-label="削除"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -373,9 +534,16 @@ export function AdminEvents() {
                 ))}
               </TableBody>
             </Table>
+            {events.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                イベントはまだ作成されていません
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -387,91 +555,104 @@ export function AdminEvents() {
               <div className="space-y-2">
                 <Label>イベントタイトル</Label>
                 <Input
-                  value={selected.title}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, title: e.target.value } : ev)),
-                    )
-                  }
+                  value={editFormData.title || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
                 />
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>日付</Label>
                   <Input
-                    value={selected.date}
-                    onChange={(e) =>
-                      setEvents((prev) =>
-                        prev.map((ev) => (ev.id === selected.id ? { ...ev, date: e.target.value } : ev)),
-                      )
+                    type="date"
+                    value={
+                      editFormData.eventDate
+                        ? new Date(editFormData.eventDate).toISOString().split("T")[0]
+                        : ""
                     }
+                    onChange={(e) => setEditFormData({ ...editFormData, eventDate: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>ステータス</Label>
                   <select
                     className="w-full border rounded-md h-10 px-3"
-                    value={selected.status}
-                    onChange={(e) =>
-                      setEvents((prev) =>
-                        prev.map((ev) =>
-                          ev.id === selected.id ? { ...ev, status: e.target.value as AdminEvent["status"] } : ev,
-                        ),
-                      )
-                    }
+                    value={editFormData.status || "active"}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
                   >
-                    <option value="公開中">公開中</option>
-                    <option value="下書き">下書き</option>
+                    <option value="active">公開中</option>
+                    <option value="draft">下書き</option>
                   </select>
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>開始時間</Label>
+                  <Input
+                    type="time"
+                    value={editFormData.startTime || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>終了時間</Label>
+                  <Input
+                    type="time"
+                    value={editFormData.endTime || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>場所</Label>
                 <Input
-                  value={selected.location ?? ""}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, location: e.target.value } : ev)),
-                    )
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>主催者</Label>
-                <Input
-                  value={selected.organizer}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, organizer: e.target.value } : ev)),
-                    )
-                  }
+                  value={editFormData.location || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>詳細</Label>
                 <Textarea
                   rows={4}
-                  value={selected.description ?? ""}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, description: e.target.value } : ev)),
-                    )
-                  }
+                  value={editFormData.detail || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, detail: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>イベント画像URL</Label>
-                <Input
-                  value={selected.image}
-                  onChange={(e) =>
-                    setEvents((prev) =>
-                      prev.map((ev) => (ev.id === selected.id ? { ...ev, image: e.target.value } : ev)),
-                    )
-                  }
+                <Label>イベント画像</Label>
+                <input
+                  ref={editFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditImageChange}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={handleEditSelectImage}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors"
+                >
+                  {editFormData.imageURL ? (
+                    <img
+                      src={editFormData.imageURL}
+                      alt="Event preview"
+                      className="mx-auto h-32 object-contain rounded-md"
+                    />
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        {isUploading ? "アップロード中..." : "クリックして画像をアップロード"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        PNG, JPG, GIF (最大 5MB)
+                      </p>
+                    </>
+                  )}
+                </button>
+                {imageError && <p className="text-xs text-red-600">{imageError}</p>}
               </div>
               <DialogFooter>
-                <Button onClick={() => setEditOpen(false)}>保存</Button>
+                <Button onClick={handleUpdateEvent}>保存</Button>
                 <Button variant="outline" onClick={() => setEditOpen(false)}>
                   キャンセル
                 </Button>
@@ -481,6 +662,7 @@ export function AdminEvents() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -493,16 +675,7 @@ export function AdminEvents() {
             </div>
           )}
           <DialogFooter>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedId) {
-                  setEvents((prev) => prev.filter((ev) => ev.id !== selectedId));
-                }
-                setDeleteOpen(false);
-                setSelectedId(null);
-              }}
-            >
+            <Button variant="destructive" onClick={handleDeleteEvent}>
               削除
             </Button>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>

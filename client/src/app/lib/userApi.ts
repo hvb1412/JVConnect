@@ -11,6 +11,11 @@ export type BackendUser = {
     occupation?: string;
     introduction?: string;
     latestBanDate?: string | null;
+    role?: string;
+    createdAt?: string;
+    friendCount?: number;
+    eventsAttended?: number;
+    needsProfileUpdate?: boolean;
 };
 
 export type UiUser = {
@@ -21,6 +26,10 @@ export type UiUser = {
     industry: string;
     intro: string;
     avatar: string;
+    memberSince?: string;
+    connections?: number;
+    eventsAttended?: number;
+    needsProfileUpdate?: boolean;
 };
 
 export type FriendshipData = {
@@ -44,8 +53,10 @@ type ApiResponse<T> = {
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
 
+import { API_ENDPOINT } from "./config";
+
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: API_ENDPOINT,
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -57,6 +68,12 @@ export function mapBackendUserToUi(user: BackendUser): UiUser {
     const role = user.occupation?.trim() || "Chua cap nhat";
     const location = user.area?.trim() || "Chua cap nhat";
     const intro = user.introduction?.trim() || "Chua cap nhat thong tin";
+    const memberSince = user.createdAt
+        ? new Intl.DateTimeFormat("ja-JP", {
+              year: "numeric",
+              month: "long",
+          }).format(new Date(user.createdAt))
+        : "未登録";
     return {
         id: user._id,
         name: user.name,
@@ -65,6 +82,10 @@ export function mapBackendUserToUi(user: BackendUser): UiUser {
         industry: role,
         intro,
         avatar: user.avatarURL?.trim() || FALLBACK_AVATAR,
+        memberSince,
+        connections: user.friendCount ?? 0,
+        eventsAttended: user.eventsAttended ?? 0,
+        needsProfileUpdate: user.needsProfileUpdate ?? false,
     };
 }
 
@@ -135,6 +156,28 @@ export async function updateUserProfile(profileData: {
         { headers: getAuthHeader() },
     );
     return mapBackendUserToUi(response.data.data);
+}
+
+export async function requestChangePasswordOtp(currentPassword: string): Promise<void> {
+    await api.post(
+        `/users/profile/password/otp`,
+        { currentPassword },
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function changeUserPassword(currentPassword: string, newPassword: string, otp: string): Promise<void> {
+    await api.put(
+        `/users/profile/password`,
+        { currentPassword, newPassword, otp },
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function deleteUserAccount(): Promise<void> {
+    await api.delete(`/users/profile`, {
+        headers: getAuthHeader(),
+    });
 }
 
 // ─── Friend List APIs ─────────────────────────────────────────────────────────
@@ -220,4 +263,42 @@ export async function getFriendStatus(
         { headers: getAuthHeader() },
     );
     return response.data.data;
+}
+
+// ─── Report APIs ──────────────────────────────────────────────────────────────
+
+export async function submitUserReport(params: {
+    userId: string;
+    reportType: string;
+    reason: string;
+    detail?: string;
+}): Promise<void> {
+    await api.post(
+        '/reports',
+        {
+            userId: params.userId,
+            reportType: params.reportType,
+            reason: params.reason,
+            detail: params.detail || '',
+        },
+        { headers: getAuthHeader() },
+    );
+}
+
+export async function submitEventReport(params: {
+    eventId: string;
+    reportType: string;
+    reason: string;
+    detail?: string;
+}): Promise<void> {
+    await api.post(
+        '/reports',
+        {
+            eventId: params.eventId,
+            reportType: params.reportType,
+            reason: params.reason,
+            detail: params.detail || '',
+        },
+        { headers: getAuthHeader() },
+    );
 }

@@ -6,6 +6,8 @@ import authRoutes from './auth.route.js';
 import conversationRoutes from './conversation.route.js';
 import adminRoutes from './admin.route.js';
 import eventRoutes from './event.route.js';
+import uploadRoutes from './upload.route.js';
+import reportRoutes from './report.route.js';
 const router = express.Router();
 router.use('/users', userRoutes);
 router.use('/friends', friendRoutes);
@@ -14,6 +16,8 @@ router.use('/auth', authRoutes);
 router.use('/conversations', conversationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/events', eventRoutes);
+router.use('/upload', uploadRoutes);
+router.use('/reports', reportRoutes);
 
 // router.use('/users', userRoute);
 
