@@ -10,8 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { RefreshCw, Search, Shield, ShieldOff, AlertCircle } from "lucide-react";
 import { listUsers, toggleUserRestriction, AdminUser } from "../lib/adminApi";
+import { useTranslation } from "../lib/i18n";
 
 export function AdminUsers() {
+    const { t } = useTranslation();
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -58,7 +60,7 @@ export function AdminUsers() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-                    <p className="text-gray-600">読み込み中...</p>
+                    <p className="text-gray-600">{t("loading")}</p>
                 </div>
             </div>
         );
@@ -72,10 +74,10 @@ export function AdminUsers() {
                     <div className="flex items-center gap-8">
                         <Logo />
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">ダッシュボード</Link>
-                            <Link to="/admin/users" className="text-blue-600 font-medium">ユーザー管理</Link>
-                            <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">イベント管理</Link>
-                            <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">通報管理</Link>
+                            <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">{t("admin_dashboard_title")}</Link>
+                            <Link to="/admin/users" className="text-blue-600 font-medium">{t("users_manage")}</Link>
+                            <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
+                            <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
@@ -87,8 +89,8 @@ export function AdminUsers() {
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="mb-8 flex items-start justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">ユーザー管理</h1>
-                        <p className="text-gray-600">登録されているすべてのユーザーを管理します</p>
+                        <h1 className="text-3xl font-bold mb-2">{t("users_manage")}</h1>
+                        <p className="text-gray-600">{t("manage_all_users")}</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={fetchUsers} className="flex items-center gap-2">
                         <RefreshCw className="h-4 w-4" />
@@ -105,14 +107,14 @@ export function AdminUsers() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>ユーザー一覧</CardTitle>
-                        <CardDescription>総ユーザー数: {users.length}人</CardDescription>
+                            <CardTitle>{t("users_list")}</CardTitle>
+                            <CardDescription>{t("total_users_label")}: {users.length}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="mb-6 relative max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                placeholder="名前またはメールアドレスで検索..."
+                                placeholder={t("search_name_email")}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-9"
@@ -123,11 +125,11 @@ export function AdminUsers() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>ユーザー</TableHead>
-                                        <TableHead>ロール</TableHead>
-                                        <TableHead>登録日</TableHead>
-                                        <TableHead>状態</TableHead>
-                                        <TableHead>操作</TableHead>
+                                        <TableHead>{t("col_user")}</TableHead>
+                                        <TableHead>{t("col_role")}</TableHead>
+                                        <TableHead>{t("col_registered")}</TableHead>
+                                        <TableHead>{t("col_status")}</TableHead>
+                                        <TableHead>{t("col_actions")}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -148,9 +150,9 @@ export function AdminUsers() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {user.role === 'admin' ? (
-                                                        <Badge variant="default" className="bg-purple-600">管理者</Badge>
+                                                        <Badge variant="default" className="bg-purple-600">{t("role_admin")}</Badge>
                                                     ) : (
-                                                        <Badge variant="outline">ユーザー</Badge>
+                                                        <Badge variant="outline">{t("role_user")}</Badge>
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-gray-500">
@@ -158,9 +160,9 @@ export function AdminUsers() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {user.isRestricted ? (
-                                                        <Badge variant="destructive">制限中</Badge>
+                                                        <Badge variant="destructive">{t("status_restricted")}</Badge>
                                                     ) : (
-                                                        <Badge className="bg-green-600 hover:bg-green-700">アクティブ</Badge>
+                                                        <Badge className="bg-green-600 hover:bg-green-700">{t("status_active")}</Badge>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
@@ -173,12 +175,12 @@ export function AdminUsers() {
                                                         {user.isRestricted ? (
                                                             <>
                                                                 <Shield className="h-3.5 w-3.5 mr-1" />
-                                                                制限解除
+                                                                {t("unlock")}
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <ShieldOff className="h-3.5 w-3.5 mr-1" />
-                                                                制限する
+                                                                {t("restrict")}
                                                             </>
                                                         )}
                                                     </Button>
@@ -187,8 +189,8 @@ export function AdminUsers() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-12 text-gray-500">
-                                                ユーザーが見つかりません
+                                                <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                                                {t("no_users_found")}
                                             </TableCell>
                                         </TableRow>
                                     )}

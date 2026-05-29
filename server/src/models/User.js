@@ -39,6 +39,11 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        language: {
+            type: String,
+            enum: ['ja', 'vi'],
+            default: 'ja',
+        },
         needsProfileUpdate: {
             type: Boolean,
             default: false,

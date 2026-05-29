@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -14,6 +15,7 @@ import {
 import { UserCheck, UserX, Loader2, InboxIcon } from "lucide-react";
 
 export function UserFriendRequests() {
+    const { t } = useTranslation();
     const [requests, setRequests] = useState<FriendRequestData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
@@ -30,7 +32,7 @@ export function UserFriendRequests() {
             const data = await getIncomingRequests();
             setRequests(data);
         } catch {
-            setError("フレンドリクエストの読み込みに失敗しました。");
+            setError(t("friend_requests_load_failed"));
         } finally {
             setIsLoading(false);
         }
@@ -38,11 +40,11 @@ export function UserFriendRequests() {
 
     const handleAccept = async (requestId: string) => {
         setProcessingId(requestId);
-        try {
+            try {
             await acceptFriendRequest(requestId);
             setRequests((prev) => prev.filter((r) => r.id !== requestId));
         } catch {
-            setError("承認に失敗しました。もう一度お試しください。");
+            setError(t("friend_accept_failed"));
         } finally {
             setProcessingId(null);
         }
@@ -50,11 +52,11 @@ export function UserFriendRequests() {
 
     const handleReject = async (requestId: string) => {
         setProcessingId(requestId);
-        try {
+            try {
             await rejectFriendRequest(requestId);
             setRequests((prev) => prev.filter((r) => r.id !== requestId));
         } catch {
-            setError("拒否に失敗しました。もう一度お試しください。");
+            setError(t("friend_reject_failed"));
         } finally {
             setProcessingId(null);
         }
@@ -67,11 +69,11 @@ export function UserFriendRequests() {
                     <div className="flex items-center gap-8">
                         <Logo />
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home">ホーム</Link>
-                            <Link to="/user/search">検索</Link>
-                            <Link to="/user/friends" className="text-blue-600 font-medium">フレンド</Link>
-                            <Link to="/user/events">イベント</Link>
-                            <Link to="/user/mypage">マイページ</Link>
+                            <Link to="/user/home">{t("nav_home")}</Link>
+                            <Link to="/user/search">{t("nav_search")}</Link>
+                            <Link to="/user/friends" className="text-blue-600 font-medium">{t("nav_friends")}</Link>
+                            <Link to="/user/events">{t("nav_events")}</Link>
+                            <Link to="/user/mypage">{t("nav_mypage")}</Link>
                         </nav>
                     </div>
                     <HeaderActions />
@@ -81,18 +83,18 @@ export function UserFriendRequests() {
             <div className="max-w-5xl mx-auto px-6 py-8">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold">フレンドリクエスト</h1>
-                        <p className="text-gray-600 text-sm mt-1">届いたリクエストを管理する</p>
+                        <h1 className="text-2xl font-bold">{t("friend_requests_title")}</h1>
+                        <p className="text-gray-600 text-sm mt-1">{t("manage_incoming_requests")}</p>
                     </div>
                     <Button asChild variant="outline">
-                        <Link to="/user/friends">← フレンド一覧</Link>
+                        <Link to="/user/friends">← {t("friends_list_title")}</Link>
                     </Button>
                 </div>
 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            フレンドリクエスト
+                            {t("friend_requests")}
                             {!isLoading && requests.length > 0 && (
                                 <span className="inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold w-5 h-5">
                                     {requests.length}
@@ -112,13 +114,13 @@ export function UserFriendRequests() {
                         {isLoading ? (
                             <div className="flex items-center gap-2 text-gray-500 py-6 justify-center">
                                 <Loader2 className="h-5 w-5 animate-spin" />
-                                <span>読み込み中...</span>
+                                <span>{t("loading")}</span>
                             </div>
                         ) : requests.length === 0 ? (
                             /* Empty state */
                             <div className="flex flex-col items-center gap-3 py-10 text-gray-400">
                                 <InboxIcon className="h-10 w-10" />
-                                <p className="text-sm">フレンドリクエストはありません</p>
+                                <p className="text-sm">{t("no_friend_requests")}</p>
                             </div>
                         ) : (
                             /* Request list */
@@ -150,7 +152,7 @@ export function UserFriendRequests() {
                                                 ) : (
                                                     <>
                                                         <UserCheck className="mr-1 h-4 w-4" />
-                                                        承認
+                                                        {t("accept")}
                                                     </>
                                                 )}
                                             </Button>
@@ -165,7 +167,7 @@ export function UserFriendRequests() {
                                                 ) : (
                                                     <>
                                                         <UserX className="mr-1 h-4 w-4" />
-                                                        拒否
+                                                        {t("reject")}
                                                     </>
                                                 )}
                                             </Button>

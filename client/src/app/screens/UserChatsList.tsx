@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import {
     Card,
     CardContent,
@@ -22,6 +23,7 @@ import { initSocket } from "../lib/socket";
 type Tab = "chats" | "requests";
 
 export function UserChatsList() {
+    const { t } = useTranslation();
     const [tab, setTab] = useState<Tab>("chats");
     const [chats, setChats] = useState<UiConversation[]>([]);
     const [pendingChats, setPendingChats] = useState<UiConversation[]>([]);
@@ -81,11 +83,11 @@ export function UserChatsList() {
                     <div className="flex items-center gap-8">
                         <Logo />
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-blue-600 font-medium">ホーム</Link>
-                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">検索</Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">フレンド</Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">イベント</Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">マイページ</Link>
+                            <Link to="/user/home" className="text-blue-600 font-medium">{t("nav_home")}</Link>
+                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
                         </nav>
                     </div>
                     <HeaderActions />
@@ -96,7 +98,7 @@ export function UserChatsList() {
                 <Button asChild variant="ghost" className="mb-6">
                     <Link to="/user/home">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        戻る
+                        {t("back")}
                     </Link>
                 </Button>
 
@@ -104,7 +106,7 @@ export function UserChatsList() {
                     <CardHeader className="pb-0">
                         <CardTitle className="flex items-center gap-2 mb-4">
                             <MessageCircle className="h-5 w-5" />
-                            メッセージ
+                            {t("messages_title")}
                         </CardTitle>
 
                         {/* ── Tabs ── */}
@@ -118,7 +120,7 @@ export function UserChatsList() {
                                 }`}
                             >
                                 <MessageCircle className="h-4 w-4" />
-                                チャット
+                                {t("tab_chats")}
                                 {chats.reduce((acc, c) => acc + c.unread, 0) > 0 && (
                                     <Badge variant="destructive" className="text-xs px-1.5 py-0.5 min-w-[20px] text-center">
                                         {chats.reduce((acc, c) => acc + c.unread, 0)}
@@ -134,7 +136,7 @@ export function UserChatsList() {
                                 }`}
                             >
                                 <MessageCircleWarning className="h-4 w-4" />
-                                メッセージリクエスト
+                                {t("message_request")}
                                 {pendingChats.length > 0 && (
                                     <Badge className="text-xs px-1.5 py-0.5 min-w-[20px] text-center bg-amber-500 hover:bg-amber-500">
                                         {pendingChats.length}
@@ -146,9 +148,7 @@ export function UserChatsList() {
 
                     <CardContent className="pt-2 space-y-1">
                         {loading && (
-                            <div className="p-6 text-center text-sm text-gray-500">
-                                読み込み中...
-                            </div>
+                            <div className="p-6 text-center text-sm text-gray-500">{t("loading")}</div>
                         )}
                         {loadError && (
                             <div className="p-6 text-center text-sm text-red-600">
@@ -162,14 +162,14 @@ export function UserChatsList() {
                                 {tab === "chats" ? (
                                     <>
                                         <MessageCircle className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                                        <p className="text-sm font-medium text-gray-600">チャットはありません</p>
-                                        <p className="text-xs text-gray-400 mt-1">フレンドとチャットを始めましょう。</p>
+                                        <p className="text-sm font-medium text-gray-600">{t("no_chats")}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{t("start_chat_with_friends")}</p>
                                     </>
                                 ) : (
                                     <>
                                         <MessageCircleWarning className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                                        <p className="text-sm font-medium text-gray-600">メッセージリクエストはありません</p>
-                                        <p className="text-xs text-gray-400 mt-1">新しいリクエストが届くとここに表示されます。</p>
+                                        <p className="text-sm font-medium text-gray-600">{t("no_message_requests")}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{t("new_requests_will_appear_here")}</p>
                                     </>
                                 )}
                             </div>
@@ -202,9 +202,7 @@ export function UserChatsList() {
                                         <p className="font-medium text-sm truncate">{chat.name}</p>
                                         <div className="flex items-center gap-1.5 flex-shrink-0">
                                             {tab === "requests" && (
-                                                <Badge className="bg-amber-100 text-amber-800 border-0 text-xs px-1.5">
-                                                    リクエスト
-                                                </Badge>
+                                                <Badge className="bg-amber-100 text-amber-800 border-0 text-xs px-1.5">{t("request_label")}</Badge>
                                             )}
                                             {tab === "chats" && chat.unread > 0 && (
                                                 <Badge variant="destructive" className="shrink-0">

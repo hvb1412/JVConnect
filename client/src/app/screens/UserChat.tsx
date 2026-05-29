@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -30,6 +31,7 @@ import {
 import { initSocket, checkOnline } from "../lib/socket.ts";
 
 export function UserChat() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const [message, setMessage] = useState("");
@@ -60,14 +62,14 @@ export function UserChat() {
     // ─── Load conversation ──────────────────────────────────────────────────
     useEffect(() => {
         const loadConversation = async () => {
-            if (!id) {
-                setLoadError("会話IDが見つかりません。");
+                if (!id) {
+                setLoadError(t("conversation_id_missing"));
                 setLoading(false);
                 return;
             }
 
             if (!currentUserId) {
-                setLoadError("ユーザーがログインしていません。");
+                setLoadError(t("user_not_logged_in"));
                 setLoading(false);
                 return;
             }
@@ -107,7 +109,7 @@ export function UserChat() {
                 setChatUser({
                     id: result.partner._id,
                     name: result.partner.name,
-                    role: "フレンド",
+                    role: t("friend_role"),
                     avatar: result.partner.avatarURL || "",
                 });
 
@@ -124,7 +126,7 @@ export function UserChat() {
                 setLoadError(
                     error?.response?.data?.message ||
                         error?.message ||
-                        "会話の読み込みに失敗しました。",
+                        t("conversation_load_failed"),
                 );
             } finally {
                 setLoading(false);
@@ -260,11 +262,11 @@ export function UserChat() {
                     <div className="flex items-center gap-8">
                         <Logo />
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">ホーム</Link>
-                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">検索</Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">フレンド</Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">イベント</Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">マイページ</Link>
+                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
@@ -277,7 +279,7 @@ export function UserChat() {
                 <Button asChild variant="ghost" className="mb-6 self-start">
                     <Link to="/user/chats">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        チャット一覧
+                        {t("chats_list")}
                     </Link>
                 </Button>
 
@@ -290,21 +292,21 @@ export function UserChat() {
                         </Avatar>
                         <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h2 className="font-semibold">{chatUser?.name || "読み込み中..."}</h2>
+                                <h2 className="font-semibold">{chatUser?.name || t("loading")}</h2>
                                 {isPending && (
                                     <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
-                                        メッセージリクエスト
+                                        {t("message_request")}
                                     </Badge>
                                 )}
                             </div>
                             <p className="text-sm text-gray-600 flex items-center gap-2">
                                 <span className={`h-2 w-2 rounded-full transition-colors duration-500 ${partnerOnline ? "bg-green-500" : "bg-gray-300"}`} />
-                                {partnerOnline ? "オンライン" : "オフライン"}
+                                {partnerOnline ? t("online") : t("offline")}
                             </p>
                         </div>
                         <Button asChild variant="outline" size="sm">
                             <Link to={`/user/profile/${chatUser?.id || ""}`}>
-                                プロフィールを見る
+                                {t("view_profile")}
                             </Link>
                         </Button>
                     </div>
@@ -313,7 +315,7 @@ export function UserChat() {
                     {loadError && (
                         <div className="px-4 pt-4">
                             <Alert className="border-red-200 bg-red-50 text-red-900 [&>svg]:text-red-700">
-                                <AlertTitle>読み込みエラー</AlertTitle>
+                                <AlertTitle>{t("load_error_title")}</AlertTitle>
                                 <AlertDescription>{loadError}</AlertDescription>
                             </Alert>
                         </div>
@@ -327,10 +329,10 @@ export function UserChat() {
                                     <MessageCircleWarning className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                                     <div className="flex-1">
                                         <p className="text-sm font-semibold text-blue-900">
-                                            メッセージリクエスト
+                                            {t("message_request")}
                                         </p>
                                         <p className="text-sm text-blue-700 mt-0.5">
-                                            <strong>{chatUser?.name}</strong> さんからのメッセージリクエストです。承認するとチャットができるようになります。
+                                            <strong>{chatUser?.name}</strong> {t("message_request_from_user")}
                                         </p>
                                         <div className="flex gap-2 mt-3">
                                             <Button
@@ -340,7 +342,7 @@ export function UserChat() {
                                                 disabled={actionLoading}
                                             >
                                                 <CheckCircle className="h-4 w-4 mr-1.5" />
-                                                承認する
+                                                {t("accept")}
                                             </Button>
                                             <Button
                                                 size="sm"
@@ -350,7 +352,7 @@ export function UserChat() {
                                                 disabled={actionLoading}
                                             >
                                                 <XCircle className="h-4 w-4 mr-1.5" />
-                                                削除する
+                                                {t("delete")}
                                             </Button>
                                         </div>
                                     </div>
@@ -365,7 +367,7 @@ export function UserChat() {
                             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-center gap-3">
                                 <Clock className="h-4 w-4 text-amber-600 flex-shrink-0" />
                                 <p className="text-sm text-amber-800">
-                                    メッセージリクエストを送信しました。相手が承認するまで返信できません。
+                                    {t("message_request_sent_notice")}
                                 </p>
                             </div>
                         </div>
@@ -375,12 +377,12 @@ export function UserChat() {
                     <CardContent className="flex-1 overflow-y-auto p-6 bg-gray-50 min-h-[240px]">
                         {loading ? (
                             <div className="flex items-center justify-center h-full text-sm text-gray-500">
-                                読み込み中...
+                                {t("loading")}
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center text-sm text-gray-500 px-4">
-                                <p className="font-medium text-gray-700 mb-1">メッセージはありません</p>
-                                <p>最初のメッセージを送ってみましょう。</p>
+                                <p className="font-medium text-gray-700 mb-1">{t("no_messages")}</p>
+                                <p>{t("send_first_message_prompt")}</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -420,9 +422,7 @@ export function UserChat() {
                     <div className="border-t border-gray-200 p-4 bg-white rounded-b-lg">
                         {/* Receiver cannot send until they accept */}
                         {isPending && iAmReceiver ? (
-                            <p className="text-sm text-center text-gray-500 py-2">
-                                メッセージリクエストを承認すると返信できます。
-                            </p>
+                            <p className="text-sm text-center text-gray-500 py-2">{t("approve_to_reply")}</p>
                         ) : (
                             <div className="flex gap-2">
                                 <Input

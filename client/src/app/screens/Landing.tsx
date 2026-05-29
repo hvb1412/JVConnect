@@ -3,8 +3,10 @@ import { Logo } from "../components/Logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { UserCircle, Users, Shield } from "lucide-react";
+import { useTranslation } from "../lib/i18n";
 
 export function Landing() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -18,14 +20,10 @@ export function Landing() {
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            JV Connect
+            {t("welcome_title")}
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            ビジネスパートナーとつながり、成長しましょう
-          </p>
-          <p className="text-lg text-gray-500">
-            デモアプリケーション - 以下から役割を選択してください
-          </p>
+          <p className="text-xl text-gray-600 mb-8">{t("welcome_subtitle")}</p>
+          <p className="text-lg text-gray-500">{t("demo_description")}</p>
         </div>
 
         {/* App Selection Grid */}
@@ -36,10 +34,8 @@ export function Landing() {
               <div className="mx-auto mb-4 p-4 bg-blue-100 rounded-full w-fit">
                 <UserCircle className="h-12 w-12 text-blue-600" />
               </div>
-              <CardTitle className="text-2xl">ゲストアプリ</CardTitle>
-              <CardDescription>
-                登録とログイン機能
-              </CardDescription>
+              <CardTitle className="text-2xl">{t("guest_app_title")}</CardTitle>
+              <CardDescription>{t("guest_app_desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm text-gray-600 space-y-2 mb-4">
@@ -48,7 +44,7 @@ export function Landing() {
                 <p>✓ 認証フロー</p>
               </div>
               <Button asChild className="w-full" size="lg">
-                <Link to="/guest/login">ゲストアプリを開く</Link>
+                <Link to="/guest/login">{t("open_guest_app")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -59,10 +55,8 @@ export function Landing() {
               <div className="mx-auto mb-4 p-4 bg-purple-100 rounded-full w-fit">
                 <Users className="h-12 w-12 text-purple-600" />
               </div>
-              <CardTitle className="text-2xl">ユーザーアプリ</CardTitle>
-              <CardDescription>
-                メイン機能とダッシュボード
-              </CardDescription>
+              <CardTitle className="text-2xl">{t("user_app_title")}</CardTitle>
+              <CardDescription>{t("user_app_desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm text-gray-600 space-y-2 mb-4">
@@ -73,7 +67,7 @@ export function Landing() {
                 <p>✓ プロフィール設定</p>
               </div>
               <Button asChild className="w-full" size="lg">
-                <Link to="/user/home">ユーザーアプリを開く</Link>
+                <Link to="/user/home">{t("open_user_app")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -84,10 +78,8 @@ export function Landing() {
               <div className="mx-auto mb-4 p-4 bg-green-100 rounded-full w-fit">
                 <Shield className="h-12 w-12 text-green-600" />
               </div>
-              <CardTitle className="text-2xl">管理者アプリ</CardTitle>
-              <CardDescription>
-                管理とモデレーション
-              </CardDescription>
+              <CardTitle className="text-2xl">{t("admin_app_title")}</CardTitle>
+              <CardDescription>{t("admin_app_desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-sm text-gray-600 space-y-2 mb-4">
@@ -97,7 +89,7 @@ export function Landing() {
                 <p>✓ ユーザー管理</p>
               </div>
               <Button asChild className="w-full" size="lg">
-                <Link to="/admin/dashboard">管理者アプリを開く</Link>
+                <Link to="/admin/dashboard">{t("open_admin_app")}</Link>
               </Button>
             </CardContent>
           </Card>
