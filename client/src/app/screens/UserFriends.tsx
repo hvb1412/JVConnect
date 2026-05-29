@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { getFriendList, deleteFriend, getIncomingRequests, FriendshipData } from "../lib/userApi";
 
 export function UserFriends() {
+  const { t } = useTranslation();
   const [friends, setFriends] = useState<FriendshipData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -51,11 +53,11 @@ export function UserFriends() {
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="hidden md:flex items-center gap-6">
-              <Link to="/user/home">ホーム</Link>
-              <Link to="/user/search">検索</Link>
-              <Link to="/user/friends" className="text-blue-600 font-medium">フレンド</Link>
-              <Link to="/user/events">イベント</Link>
-              <Link to="/user/mypage">マイページ</Link>
+              <Link to="/user/home">{t("nav_home")}</Link>
+              <Link to="/user/search">{t("nav_search")}</Link>
+              <Link to="/user/friends" className="text-blue-600 font-medium">{t("nav_friends")}</Link>
+              <Link to="/user/events">{t("nav_events")}</Link>
+              <Link to="/user/mypage">{t("nav_mypage")}</Link>
             </nav>
           </div>
           <HeaderActions />
@@ -64,10 +66,10 @@ export function UserFriends() {
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">フレンド一覧</h1>
+          <h1 className="text-2xl font-bold">{t("friends_list_title")}</h1>
           <Button asChild variant="outline" className="relative">
             <Link to="/user/friend-requests">
-              リクエスト
+              {t("friend_requests")}
               {pendingRequestCount > 0 && (
                 <span className="ml-2 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold w-5 h-5">
                   {pendingRequestCount}
@@ -79,13 +81,13 @@ export function UserFriends() {
 
         <Card>
           <CardHeader>
-            <CardTitle>フレンド</CardTitle>
+            <CardTitle>{t("friends_title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
-              <p className="text-gray-500">読み込み中...</p>
+              <p className="text-gray-500">{t("loading")}</p>
             ) : friends.length === 0 ? (
-              <p className="text-gray-500">フレンドがいません</p>
+              <p className="text-gray-500">{t("no_friends")}</p>
             ) : (
               friends.map((item) => (
                 <div key={item.friendshipId} className="border rounded-lg p-3 flex items-center justify-between gap-3">
@@ -96,7 +98,7 @@ export function UserFriends() {
                     </Avatar>
                     <div>
                       <p className="font-medium">{item.friend.name}</p>
-                      <p className="text-sm text-gray-500">オフライン</p>
+                      <p className="text-sm text-gray-500">{t("offline")}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -114,7 +116,7 @@ export function UserFriends() {
                         setDeleteOpen(true);
                       }}
                     >
-                      削除
+                      {t("delete")}
                     </Button>
                   </div>
                 </div>
@@ -127,11 +129,11 @@ export function UserFriends() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>フレンドを削除しますか？</DialogTitle>
+            <DialogTitle>{t("confirm_delete_friend")}</DialogTitle>
           </DialogHeader>
           {pendingName && (
             <p className="text-sm text-gray-600">
-              <span className="font-medium">{pendingName}</span> をフレンドから削除します。
+              <span className="font-medium">{pendingName}</span> {t("will_remove_friend")}
             </p>
           )}
           <DialogFooter>
@@ -159,7 +161,7 @@ export function UserFriends() {
                 setPendingDeleteId(null);
               }}
             >
-              キャンセル
+              {t("cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { LanguageToggle } from "../components/LanguageToggle";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -15,6 +16,7 @@ export function GuestLogin() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     try {
@@ -34,7 +36,7 @@ export function GuestLogin() {
         navigate("/user/home");
       }
     } catch (error: any) {
-      setLoginError(error.message || "メールアドレスまたはパスワードが正しくありません。");
+      setLoginError(error.message || t("invalid_login_error"));
     } finally {
       setIsLoading(false);
     }
@@ -51,87 +53,79 @@ export function GuestLogin() {
             className="w-full h-auto rounded-2xl shadow-lg"
           />
           <h2 className="mt-6 text-2xl font-semibold text-center text-gray-800">
-            JV Connectへようこそ
+            {t("auth_welcome_title")}
           </h2>
           <p className="mt-2 text-gray-600 text-center">
-            ビジネスパートナーとつながり、成長しましょう
+            {t("auth_welcome_subtitle")}
           </p>
+          {/* Logo and language toggle moved to the login card top-right */}
         </div>
 
-        {/* Right side - Login form */}
-        <div className="flex flex-col items-center">
-          <div className="w-full max-w-md">
-            <div className="flex justify-between items-center mb-8">
-              <Logo />
-              <LanguageToggle />
-            </div>
-
-            <Card className="w-full shadow-xl">
-              <CardHeader className="space-y-2">
-                <CardTitle className="text-2xl">ログイン</CardTitle>
-                <CardDescription>
-                  アカウントにログインしてください
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email">メールアドレス</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (loginError) setLoginError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">パスワード</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (loginError) setLoginError("");
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Link
-                    to="/guest/forgot-password"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    パスワードを忘れた場合
-                  </Link>
-                </div>
-
-                {loginError && <p className="text-sm text-red-600">{loginError}</p>}
-
-                <div className="space-y-3">
-                  <Button className="w-full" size="lg" onClick={handleLogin} disabled={isLoading}>
-                    {isLoading ? "ログイン中..." : "ログイン"}
-                  </Button>
-                  <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
-                    <Link to="/guest/register">新規登録へ</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="flex flex-col justify-center relative">
+          <div className="absolute -top-12 right-4 z-10 flex items-center space-x-3">
+            <Logo />
+            <LanguageToggle />
           </div>
+          <Card className="w-full shadow-xl">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-2xl">{t("login_title")}</CardTitle>
+              <CardDescription>{t("login_description")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email">{t("email")}</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (loginError) setLoginError("");
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">{t("password")}</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (loginError) setLoginError("");
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Link to="/guest/forgot-password" className="text-sm text-blue-600 hover:underline">
+                  {t("forgot_password")}
+                </Link>
+              </div>
+
+              {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+
+              <div className="space-y-3">
+                <Button className="w-full" size="lg" onClick={handleLogin} disabled={isLoading}>
+                  {isLoading ? t("logging_in") : t("login_button")}
+                </Button>
+                <Button asChild variant="outline" className="w-full" size="lg" disabled={isLoading}>
+                  <Link to="/guest/register">{t("login_register_link")}</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

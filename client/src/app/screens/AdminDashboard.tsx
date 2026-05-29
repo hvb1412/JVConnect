@@ -7,8 +7,10 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Users, AlertTriangle, Calendar } from "lucide-react";
 import { listUsers, toggleUserRestriction, listReports, AdminUser, AdminReport } from "../lib/adminApi";
+import { useTranslation } from "../lib/i18n";
 
 export function AdminDashboard() {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -40,21 +42,21 @@ export function AdminDashboard() {
   const stats = useMemo(
     () => [
       {
-        title: "総ユーザー数",
+        title: t("stat_total_users"),
         value: users.length.toString(),
         icon: Users,
         color: "text-blue-600",
         bgColor: "bg-blue-100",
       },
       {
-        title: "総通報数",
+        title: t("stat_total_reports"),
         value: reports.length.toString(),
         icon: AlertTriangle,
         color: "text-red-600",
         bgColor: "bg-red-100",
       },
       {
-        title: "制限中アカウント",
+        title: t("stat_restricted_accounts"),
         value: users.filter((user) => user.isRestricted).length.toString(),
         icon: Calendar,
         color: "text-green-600",
@@ -98,7 +100,7 @@ export function AdminDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -112,18 +114,10 @@ export function AdminDashboard() {
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="hidden md:flex items-center gap-6">
-              <Link to="/admin/dashboard" className="text-blue-600 font-medium">
-                ダッシュボード
-              </Link>
-              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">
-                ユーザー管理
-              </Link>
-              <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">
-                イベント管理
-              </Link>
-              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">
-                通報管理
-              </Link>
+              <Link to="/admin/dashboard" className="text-blue-600 font-medium">{t("admin_dashboard_title")}</Link>
+              <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
+              <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
+              <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
@@ -135,8 +129,8 @@ export function AdminDashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">管理ダッシュボード</h1>
-          <p className="text-gray-600">システムの概要とアクティビティ</p>
+          <h1 className="text-3xl font-bold mb-2">{t("admin_dashboard_title")}</h1>
+          <p className="text-gray-600">{t("admin_dashboard_description")}</p>
         </div>
 
         {error && (
@@ -166,14 +160,14 @@ export function AdminDashboard() {
           {/* Recent Users */}
           <Card>
             <CardHeader>
-              <CardTitle>最近登録されたユーザー</CardTitle>
-              <CardDescription>直近のユーザー登録</CardDescription>
+              <CardTitle>{t("recent_users_title")}</CardTitle>
+              <CardDescription>{t("recent_users_description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Input
                 value={userSearchTerm}
                 onChange={(event) => setUserSearchTerm(event.target.value)}
-                placeholder="名前またはメールで検索"
+                placeholder={t("search_name_email")}
                 className="mb-4"
               />
               <div className="space-y-4">
@@ -186,9 +180,7 @@ export function AdminDashboard() {
                       <div>
                         <p className="font-semibold">{user.name}</p>
                         <p className="text-sm text-gray-600">{user.email}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(user.createdAt).toLocaleDateString("ja-JP")}
-                        </p>
+                        <p className="text-xs text-gray-500">{new Date(user.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
@@ -198,26 +190,26 @@ export function AdminDashboard() {
                               : "bg-green-100 text-green-700"
                           }`}
                         >
-                          {user.isRestricted ? "制限中" : "アクティブ"}
+                          {user.isRestricted ? t("status_restricted") : t("status_active")}
                         </span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleLockToggle(user._id)}
                         >
-                          {user.isRestricted ? "解除" : "制限"}
+                          {user.isRestricted ? t("unlock") : t("restrict")}
                         </Button>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="p-3 text-sm text-gray-500 bg-gray-50 rounded-lg">
-                    一致するユーザーが見つかりません。
+                    {t("no_matching_users")}
                   </div>
                 )}
               </div>
               <Button variant="outline" className="w-full mt-4" asChild>
-                <Link to="/admin/users">すべてのユーザーを表示</Link>
+                <Link to="/admin/users">{t("view_all_users")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -225,8 +217,8 @@ export function AdminDashboard() {
           {/* Recent Reports */}
           <Card>
             <CardHeader>
-              <CardTitle>最新の通報</CardTitle>
-              <CardDescription>処理が必要な通報</CardDescription>
+                <CardTitle>{t("latest_reports_title")}</CardTitle>
+                <CardDescription>{t("reports_needing_processing")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -251,18 +243,18 @@ export function AdminDashboard() {
                         </p>
                       </div>
                       <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded whitespace-nowrap">
-                        {report.decision === 'pending' ? '未対応' : report.decision === 'approved' ? '承認' : '却下'}
+                        {report.decision === 'pending' ? t("status_pending") : report.decision === 'approved' ? t("status_approved") : t("status_rejected")}
                       </span>
                     </div>
                   ))
                 ) : (
                   <div className="p-3 text-sm text-gray-500 bg-gray-50 rounded-lg">
-                    未処理の通報はありません。
+                    {t("no_unprocessed_reports")}
                   </div>
                 )}
               </div>
               <Button asChild className="w-full mt-4">
-                <Link to="/admin/reports">通報管理へ</Link>
+                <Link to="/admin/reports">{t("go_to_reports")}</Link>
               </Button>
             </CardContent>
           </Card>

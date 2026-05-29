@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Button } from "../components/ui/button";
 import { Check, Menu } from "lucide-react";
 import { Badge } from "../components/ui/badge";
+import { useTranslation } from "../lib/i18n";
 
 const plans = [
   {
@@ -58,6 +59,7 @@ const plans = [
 ];
 
 export function UserSubscription() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -66,18 +68,10 @@ export function UserSubscription() {
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="hidden md:flex items-center gap-6">
-              <Link to="/user/home" className="text-gray-600 hover:text-gray-900">
-                ホーム
-              </Link>
-              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">
-                検索
-              </Link>
-              <Link to="/user/events" className="text-gray-600 hover:text-gray-900">
-                イベント
-              </Link>
-              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">
-                マイページ
-              </Link>
+              <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+              <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
@@ -92,10 +86,8 @@ export function UserSubscription() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">プラン管理</h1>
-          <p className="text-xl text-gray-600">
-            あなたに最適なプランを選んでください
-          </p>
+          <h1 className="text-4xl font-bold mb-4">{t("plans_title")}</h1>
+          <p className="text-xl text-gray-600">{t("choose_plan_subtitle")}</p>
         </div>
 
         {/* Plans Grid */}
@@ -113,12 +105,12 @@ export function UserSubscription() {
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-blue-500">人気</Badge>
+                  <Badge className="bg-blue-500">{t("popular")}</Badge>
                 </div>
               )}
               {plan.current && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-green-500">現在のプラン</Badge>
+                  <Badge className="bg-green-500">{t("current_plan")}</Badge>
                 </div>
               )}
               <CardHeader className="text-center">
@@ -140,14 +132,11 @@ export function UserSubscription() {
                 </ul>
                 {plan.current ? (
                   <Button variant="outline" className="w-full" disabled>
-                    現在のプラン
+                    {t("current_plan")}
                   </Button>
                 ) : (
-                  <Button
-                    className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
-                  >
-                    購入
+                  <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
+                    {t("purchase")}
                   </Button>
                 )}
               </CardContent>
@@ -158,33 +147,27 @@ export function UserSubscription() {
         {/* Additional Info */}
         <Card className="max-w-4xl mx-auto">
           <CardHeader>
-            <CardTitle>よくある質問</CardTitle>
+            <CardTitle>{t("faq_title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">プランはいつでも変更できますか？</h3>
-              <p className="text-gray-600 text-sm">
-                はい、いつでもプランのアップグレードまたはダウングレードが可能です。
-              </p>
+              <h3 className="font-semibold mb-2">{t("faq_q_change_plan")}</h3>
+              <p className="text-gray-600 text-sm">{t("faq_a_change_plan")}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">支払い方法は何がありますか？</h3>
-              <p className="text-gray-600 text-sm">
-                クレジットカード、デビットカード、銀行振込に対応しています。
-              </p>
+              <h3 className="font-semibold mb-2">{t("faq_q_payment_methods")}</h3>
+              <p className="text-gray-600 text-sm">{t("faq_a_payment_methods")}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">キャンセルはできますか？</h3>
-              <p className="text-gray-600 text-sm">
-                いつでもキャンセルできます。次回の更新日から課金が停止されます。
-              </p>
+              <h3 className="font-semibold mb-2">{t("faq_q_cancel")}</h3>
+              <p className="text-gray-600 text-sm">{t("faq_a_cancel")}</p>
             </div>
           </CardContent>
         </Card>
 
         <div className="text-center mt-8">
           <Button asChild variant="outline">
-            <Link to="/user/mypage">マイページに戻る</Link>
+            <Link to="/user/mypage">{t("back_to_mypage")}</Link>
           </Button>
         </div>
       </div>

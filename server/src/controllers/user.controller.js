@@ -71,7 +71,7 @@ export const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const { name, avatarURL, area, occupation, introduction } = req.body;
+        const { name, avatarURL, area, occupation, introduction, language } = req.body;
 
         const updatedUser = await User.findByIdAndUpdate(
             userId,
@@ -81,6 +81,7 @@ export const updateProfile = async (req, res) => {
                 area,
                 occupation,
                 introduction,
+                ...(language === 'ja' || language === 'vi' ? { language } : {}),
                 needsProfileUpdate: false,
             },
             {

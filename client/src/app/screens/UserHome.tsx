@@ -1,11 +1,13 @@
 import { Link } from "react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
+import { Calendar, Search, User } from "lucide-react";
 import { getSuggestedUsers, getUserProfile, updateUserProfile, UiUser } from "../lib/userApi";
 import { getSuggestedEvents, UiEvent } from "../lib/eventApi";
 
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
 import ChatList from "../components/ChatList";
+import { useTranslation } from "../lib/i18n";
 
 import {
     Card,
@@ -29,11 +31,8 @@ import {
     DialogTitle,
 } from "../components/ui/dialog";
 
-import { Search, Calendar, User } from "lucide-react";
-
-import { isEventContentHidden } from "../lib/contentModerationStore";
-
 export function UserHome() {
+    const { t } = useTranslation();
     const [recommendedUsers, setRecommendedUsers] = useState<UiUser[]>([]);
     const [recommendedEvents, setRecommendedEvents] = useState<UiEvent[]>([]);
     const [needsProfileUpdate, setNeedsProfileUpdate] = useState(false);
@@ -73,9 +72,7 @@ export function UserHome() {
         loadProfile();
     }, [userId]);
 
-    const visibleRecommendedEvents = recommendedEvents.filter(
-        (event) => !isEventContentHidden(event.title),
-    );
+    const visibleRecommendedEvents = recommendedEvents;
 
     const handleSaveProfile = async () => {
         try {
@@ -86,10 +83,10 @@ export function UserHome() {
                 introduction: profileIntroduction,
             });
             setNeedsProfileUpdate(false);
-            alert("プロフィールを更新しました。");
+            alert(t("profile_updated"));
         } catch (error) {
             console.error(error);
-            alert("プロフィールの保存に失敗しました。");
+            alert(t("profile_save_failed"));
         } finally {
             setIsSavingProfile(false);
         }
@@ -104,40 +101,11 @@ export function UserHome() {
                         <Logo />
 
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link
-                                to="/user/home"
-                                className="text-blue-600 font-medium"
-                            >
-                                ホーム
-                            </Link>
-
-                            <Link
-                                to="/user/search"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                検索
-                            </Link>
-
-                            <Link
-                                to="/user/friends"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                フレンド
-                            </Link>
-
-                            <Link
-                                to="/user/events"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                イベント
-                            </Link>
-
-                            <Link
-                                to="/user/mypage"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                マイページ
-                            </Link>
+                            <Link to="/user/home" className="text-blue-600 font-medium">{t("nav_home")}</Link>
+                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
                         </nav>
                     </div>
 
@@ -152,11 +120,11 @@ export function UserHome() {
                 <Dialog open={needsProfileUpdate} onOpenChange={(open) => { if (open) setNeedsProfileUpdate(true); /* ignore attempts to close from overlay/escape */ }}>
                     <DialogContent hideClose>
                         <DialogHeader>
-                            <DialogTitle>プロフィール編集</DialogTitle>
+                            <DialogTitle>{t("edit_profile")}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
-                                <Label htmlFor="home-profile-area">地域</Label>
+                                <Label htmlFor="home-profile-area">{t("label_area")}</Label>
                                 <Input
                                     id="home-profile-area"
                                     value={profileArea}
@@ -164,7 +132,7 @@ export function UserHome() {
                                 />
                             </div>
                             <div>
-                                <Label htmlFor="home-profile-occupation">業界</Label>
+                                <Label htmlFor="home-profile-occupation">{t("label_industry")}</Label>
                                 <Input
                                     id="home-profile-occupation"
                                     value={profileOccupation}
@@ -172,7 +140,7 @@ export function UserHome() {
                                 />
                             </div>
                             <div>
-                                <Label htmlFor="home-profile-intro">自己紹介</Label>
+                                <Label htmlFor="home-profile-intro">{t("label_intro")}</Label>
                                 <Textarea
                                     id="home-profile-intro"
                                     value={profileIntroduction}
@@ -195,25 +163,19 @@ export function UserHome() {
                         {/* Welcome */}
                         <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                             <CardHeader>
-                                <CardTitle className="text-white">
-                                    おかえりなさい！
-                                </CardTitle>
+                                <CardTitle className="text-white">{t("welcome_back")}</CardTitle>
 
-                                <CardDescription className="text-blue-100">
-                                    今日も新しい出会いを見つけましょう
-                                </CardDescription>
+                                <CardDescription className="text-blue-100">{t("welcome_subtext")}</CardDescription>
                             </CardHeader>
                         </Card>
 
                         {/* Recommended Users */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>おすすめのユーザー</CardTitle>
+                                    <CardTitle>{t("recommended_users_title")}</CardTitle>
 
-                                <CardDescription>
-                                    あなたにぴったりのビジネスパートナー
-                                </CardDescription>
-                            </CardHeader>
+                                    <CardDescription>{t("recommended_users_desc")}</CardDescription>
+                                </CardHeader>
 
                             <CardContent>
                                 <div className="grid md:grid-cols-2 gap-4">
@@ -271,12 +233,10 @@ export function UserHome() {
                         {/* Recommended Events */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>おすすめのイベント</CardTitle>
+                                    <CardTitle>{t("recommended_events_title")}</CardTitle>
 
-                                <CardDescription>
-                                    参加してネットワークを広げましょう
-                                </CardDescription>
-                            </CardHeader>
+                                    <CardDescription>{t("recommended_events_desc")}</CardDescription>
+                                </CardHeader>
 
                             <CardContent>
                                 <div className="space-y-4">
@@ -313,11 +273,7 @@ export function UserHome() {
                                                     </div>
 
                                                     <Button asChild size="sm">
-                                                        <Link
-                                                            to={`/user/events/${event.id}`}
-                                                        >
-                                                            詳細を見る
-                                                        </Link>
+                                                        <Link to={`/user/events/${event.id}`}>{t("view_details")}</Link>
                                                     </Button>
                                                 </CardContent>
                                             </div>
@@ -325,9 +281,7 @@ export function UserHome() {
                                     ))}
 
                                     {visibleRecommendedEvents.length === 0 && (
-                                        <p className="text-sm text-gray-600">
-                                            表示できるおすすめイベントは現在ありません。
-                                        </p>
+                                        <p className="text-sm text-gray-600">{t("no_recommended_events")}</p>
                                     )}
                                 </div>
 
@@ -336,9 +290,7 @@ export function UserHome() {
                                     variant="outline"
                                     className="w-full mt-4"
                                 >
-                                    <Link to="/user/events">
-                                        イベント一覧へ
-                                    </Link>
+                                    <Link to="/user/events">{t("events_list_link")}</Link>
                                 </Button>
                             </CardContent>
                         </Card>
@@ -349,7 +301,7 @@ export function UserHome() {
                         {/* Quick Actions */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>クイックアクション</CardTitle>
+                                <CardTitle>{t("quick_actions")}</CardTitle>
                             </CardHeader>
 
                             <CardContent className="space-y-2">
@@ -360,7 +312,7 @@ export function UserHome() {
                                 >
                                     <Link to="/user/search">
                                         <Search className="mr-2 h-4 w-4" />
-                                        検索へ
+                                        {t("go_to_search")}
                                     </Link>
                                 </Button>
 
@@ -371,7 +323,7 @@ export function UserHome() {
                                 >
                                     <Link to="/user/friends">
                                         <User className="mr-2 h-4 w-4" />
-                                        フレンド一覧へ
+                                        {t("go_to_friends")}
                                     </Link>
                                 </Button>
 
@@ -382,7 +334,7 @@ export function UserHome() {
                                 >
                                     <Link to="/user/events">
                                         <Calendar className="mr-2 h-4 w-4" />
-                                        イベント一覧へ
+                                        {t("go_to_events")}
                                     </Link>
                                 </Button>
 
@@ -393,7 +345,7 @@ export function UserHome() {
                                 >
                                     <Link to="/user/mypage">
                                         <User className="mr-2 h-4 w-4" />
-                                        マイページへ
+                                        {t("go_to_mypage")}
                                     </Link>
                                 </Button>
                             </CardContent>
@@ -402,8 +354,8 @@ export function UserHome() {
                         {/* Recent Chats */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>最近のチャット</CardTitle>
-                            </CardHeader>
+                                    <CardTitle>{t("recent_chats")}</CardTitle>
+                                </CardHeader>
 
                             <CardContent className="space-y-3">
                                 <ChatList />

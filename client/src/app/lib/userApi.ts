@@ -149,6 +149,7 @@ export async function updateUserProfile(profileData: {
     area?: string;
     occupation?: string;
     introduction?: string;
+    language?: 'ja' | 'vi';
 }): Promise<UiUser> {
     const response = await api.put<ApiResponse<BackendUser>>(
         `/users/profile`,

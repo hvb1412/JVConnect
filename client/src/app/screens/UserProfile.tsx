@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
@@ -35,16 +36,10 @@ import {
     type FriendStatus,
 } from "../lib/userApi";
 
-const REPORT_TYPES = [
-    { value: "harassment", label: "迷惑行為・嫌がらせ" },
-    { value: "inappropriate", label: "不適切な内容" },
-    { value: "fake", label: "虚偽の情報・なりすまし" },
-    { value: "spam", label: "スパム" },
-    { value: "violence", label: "暴力的・危険なコンテンツ" },
-    { value: "other", label: "その他" },
-];
+const REPORT_TYPES = ["harassment", "inappropriate", "fake", "spam", "violence", "other"] as const;
 
 export function UserProfile() {
+    const { t } = useTranslation();
     const { id } = useParams();
 
     const [user, setUser] = useState<UiUser | null>(null);
@@ -83,7 +78,7 @@ export function UserProfile() {
             const profile = await getUserProfile(id!);
             setUser(profile);
         } catch {
-            setLoadError("プロフィールの取得に失敗しました。URLまたはAPIを確認してください。");
+            setLoadError(t("profile_load_failed"));
         } finally {
             setIsLoading(false);
         }
@@ -110,7 +105,7 @@ export function UserProfile() {
             await sendFriendRequest(id);
             setFriendStatus("sent");
         } catch {
-            setRequestError("フレンド申請に失敗しました。もう一度お試しください。");
+            setRequestError(t("friend_request_failed"));
         } finally {
             setRequestSending(false);
         }
@@ -132,14 +127,14 @@ export function UserProfile() {
             await submitUserReport({
                 userId: id,
                 reportType,
-                reason: REPORT_TYPES.find((t) => t.value === reportType)?.label || reportType,
+                reason: t(`report_type_${reportType}`) || reportType,
                 detail: reportDetail.trim(),
             });
             setReportSuccess(true);
         } catch (error: any) {
             const msg =
                 error?.response?.data?.message ||
-                "通報の送信に失敗しました。もう一度お試しください。";
+                t("report_send_failed");
             setReportError(msg);
         } finally {
             setReportSubmitting(false);
@@ -152,10 +147,10 @@ export function UserProfile() {
 
     const friendButtonLabel = () => {
         if (requestSending || statusLoading) return null;
-        if (isFriend) return "フレンド";
-        if (hasSent) return "申請済み";
-        if (hasReceived) return "承認する";
-        return "フレンド追加";
+        if (isFriend) return t("friend_label");
+        if (hasSent) return t("friend_requested");
+        if (hasReceived) return t("friend_accept");
+        return t("add_friend");
     };
 
     const userName = user?.name || "...";
@@ -173,13 +168,13 @@ export function UserProfile() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">ホーム</Link>
-                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">検索</Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">フレンド</Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">イベント</Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">マイページ</Link>
-                        </nav>
+                                <nav className="hidden md:flex items-center gap-6">
+                                    <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                                    <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                                    <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                                    <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                                    <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
+                                </nav>
                     </div>
                     <div className="flex items-center gap-4">
                         <HeaderActions />
@@ -192,7 +187,7 @@ export function UserProfile() {
                 <Button asChild variant="ghost" className="mb-6">
                     <Link to="/user/search">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        戻る
+                        {t("back")}
                     </Link>
                 </Button>
 
@@ -224,7 +219,7 @@ export function UserProfile() {
                                     <Button asChild className="w-full" disabled={!isFriend}>
                                         <Link to={`/user/chat/${userId}`}>
                                             <MessageCircle className="mr-2 h-4 w-4" />
-                                            チャット
+                                            {t("chat")}
                                         </Link>
                                     </Button>
 
@@ -270,7 +265,7 @@ export function UserProfile() {
                                             onClick={handleOpenReport}
                                         >
                                             <Flag className="mr-2 h-4 w-4" />
-                                            通報する
+                                            {t("report_user")}
                                         </Button>
                                     )}
                                 </div>
@@ -282,11 +277,11 @@ export function UserProfile() {
                     <div className="lg:col-span-2 space-y-6">
                         <Card>
                             <CardContent className="p-6">
-                                <h2 className="text-xl font-semibold mb-4">自己紹介</h2>
+                                <h2 className="text-xl font-semibold mb-4">{t("profile_intro_title")}</h2>
                                 {isLoading && (
                                     <div className="flex items-center gap-2 text-gray-500 mb-2">
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span className="text-sm">読み込み中...</span>
+                                        <span className="text-sm">{t("loading")}</span>
                                     </div>
                                 )}
                                 {loadError && (
@@ -311,10 +306,10 @@ export function UserProfile() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Flag className="h-5 w-5 text-red-500" />
-                            ユーザーを通報する
+                            {t("report_user_title")}
                         </DialogTitle>
                         <p className="text-sm text-gray-500 mt-1">
-                            <span className="font-medium text-gray-800">{userName}</span> さんを通報します。管理者が内容を確認します。
+                            <span className="font-medium text-gray-800">{userName}</span> {t("report_user_notice")}
                         </p>
                     </DialogHeader>
 
@@ -339,29 +334,27 @@ export function UserProfile() {
                             <div className="space-y-4">
                                 {/* Report type selector */}
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="report-type">通報の種類 <span className="text-red-500">*</span></Label>
-                                    <select
+                                        <Label htmlFor="report-type">{t("report_type_label")} <span className="text-red-500">*</span></Label>
+                                        <select
                                         id="report-type"
                                         className="w-full border border-gray-200 rounded-md h-10 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         value={reportType}
                                         onChange={(e) => setReportType(e.target.value)}
                                     >
-                                        {REPORT_TYPES.map((t) => (
-                                            <option key={t.value} value={t.value}>
-                                                {t.label}
-                                            </option>
-                                        ))}
+                                            {REPORT_TYPES.map((v) => (
+                                                <option key={v} value={v}>{t(`report_type_${v}`)}</option>
+                                            ))}
                                     </select>
                                 </div>
 
                                 {/* Detail textarea */}
                                 <div className="space-y-1.5">
                                     <Label htmlFor="report-detail">
-                                        詳細 <span className="text-gray-400 font-normal text-xs">(任意)</span>
+                                        {t("report_detail_label")} <span className="text-gray-400 font-normal text-xs">({t("optional")})</span>
                                     </Label>
                                     <Textarea
                                         id="report-detail"
-                                        placeholder="具体的な状況や詳細を入力してください..."
+                                        placeholder={t("report_detail_placeholder")}
                                         value={reportDetail}
                                         onChange={(e) => setReportDetail(e.target.value)}
                                         className="resize-none"
@@ -379,35 +372,13 @@ export function UserProfile() {
                                 )}
 
                                 {/* Notice */}
-                                <p className="text-xs text-gray-400 leading-relaxed">
-                                    虚偽の通報はアカウントへの制限につながる可能性があります。確認できた内容のみご報告ください。
-                                </p>
+                                <p className="text-xs text-gray-400 leading-relaxed">{t("false_report_warning")}</p>
                             </div>
 
                             <DialogFooter className="gap-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setReportOpen(false)}
-                                    disabled={reportSubmitting}
-                                >
-                                    キャンセル
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    onClick={handleSubmitReport}
-                                    disabled={reportSubmitting}
-                                >
-                                    {reportSubmitting ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            送信中...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Flag className="mr-2 h-4 w-4" />
-                                            通報する
-                                        </>
-                                    )}
+                                <Button variant="outline" onClick={() => setReportOpen(false)} disabled={reportSubmitting}>{t("cancel")}</Button>
+                                <Button variant="destructive" onClick={handleSubmitReport} disabled={reportSubmitting}>
+                                    {reportSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("sending")}</>) : (<><Flag className="mr-2 h-4 w-4" />{t("report_user")}</>)}
                                 </Button>
                             </DialogFooter>
                         </>
@@ -419,25 +390,16 @@ export function UserProfile() {
             <Dialog open={friendOpen} onOpenChange={setFriendOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>フレンド申請を送信しますか？</DialogTitle>
+                        <DialogTitle>{t("confirm_send_friend_request")}</DialogTitle>
                     </DialogHeader>
                     {user && (
                         <p className="text-sm text-gray-600">
-                            <span className="font-medium">{user.name}</span> さんにフレンド申請を送ります。
+                            <span className="font-medium">{user.name}</span> {t("will_send_friend_request")}
                         </p>
                     )}
                     <DialogFooter>
-                        <Button onClick={handleSendRequest} disabled={requestSending}>
-                            {requestSending ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <UserPlus className="mr-2 h-4 w-4" />
-                            )}
-                            送信
-                        </Button>
-                        <Button variant="outline" onClick={() => setFriendOpen(false)}>
-                            キャンセル
-                        </Button>
+                        <Button onClick={handleSendRequest} disabled={requestSending}>{requestSending ? (<Loader2 className="mr-2 h-4 w-4 animate-spin" />) : (<UserPlus className="mr-2 h-4 w-4" />)}{t("send")}</Button>
+                        <Button variant="outline" onClick={() => setFriendOpen(false)}>{t("cancel")}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
