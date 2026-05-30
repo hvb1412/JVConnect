@@ -18,6 +18,10 @@ import {
     updateEventByAdmin,
     deleteEventByAdmin,
     getUserById,
+    listEventParticipations,
+    approveParticipation,
+    rejectParticipation,
+    listPendingParticipations,
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -47,5 +51,11 @@ router.get('/events', listEvents);
 router.post('/events', createEventByAdmin);
 router.put('/events/:eventId', updateEventByAdmin);
 router.delete('/events/:eventId', deleteEventByAdmin);
+
+// Event Participation Management
+router.get('/events/participations/pending', listPendingParticipations);
+router.get('/events/:eventId/participations', listEventParticipations);
+router.patch('/events/:eventId/participations/:userId/approve', approveParticipation);
+router.patch('/events/:eventId/participations/:userId/reject', rejectParticipation);
 
 export default router;

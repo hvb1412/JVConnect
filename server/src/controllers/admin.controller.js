@@ -4,6 +4,7 @@ import Report from '../models/Report.js';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import Participation from '../models/Participation.js';
+import { emitToMembers, getReceiverSocketId, getIO } from '../socket.js';
 
 const selectPublicUser = '-password -confirmCode';
 
@@ -425,3 +426,191 @@ export const getUserById = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// ── EVENT PARTICIPATION MANAGEMENT ───────────────────────────────────────────
+
+export const listPendingParticipations = async (req, res) => {
+    try {
+        const participations = await Participation.find({ status: 'pending' })
+            .populate('user', 'name email avatarURL')
+            .populate('event', 'title imageURL')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, data: participations });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// GET /admin/events/:eventId/participations — danh sách yêu cầu tham gia sự kiện
+export const listEventParticipations = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { status } = req.query; // optional filter: pending | approved | rejected
+
+        const query = { event: eventId };
+        if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+            query.status = status;
+        }
+
+        const participations = await Participation.find(query)
+            .populate('user', 'name email avatarURL')
+            .populate('reviewedBy', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, data: participations });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// PATCH /admin/events/:eventId/participations/:userId/approve — duyệt tham gia
+export const approveParticipation = async (req, res) => {
+    try {
+        const adminId = req.user?.id || req.user?._id;
+        const { eventId, userId } = req.params;
+
+        const participation = await Participation.findOne({ user: userId, event: eventId });
+        if (!participation) {
+            return res.status(404).json({ success: false, message: 'Participation request not found' });
+        }
+
+        if (participation.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Request is not in pending state' });
+        }
+
+        // Cập nhật status
+        participation.status = 'approved';
+        participation.reviewedBy = adminId;
+        participation.reviewedAt = new Date();
+        await participation.save();
+
+        // Thêm user vào participants[] của Event
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ success: false, message: 'Event not found' });
+        }
+        
+        if (!event.participants.some((p) => String(p) === String(userId))) {
+            event.participants.push(userId);
+            await event.save();
+        }
+
+        // Tìm hoặc tạo group chat cho sự kiện
+        let groupConv = await Conversation.findOne({ type: 'group', eventId });
+
+        if (!groupConv) {
+            // Tạo mới group chat sự kiện
+            const initialMembers = [String(event.organizer), String(userId)];
+            if (!initialMembers.includes(String(adminId))) {
+                initialMembers.push(String(adminId));
+            }
+            const uniqueMembers = [...new Set(initialMembers)];
+
+            groupConv = await Conversation.create({
+                type: 'group',
+                name: event.title || 'イベントグループ',
+                avatarURL: event.imageURL || '',
+                members: uniqueMembers,
+                admin: event.organizer,
+                eventId,
+            });
+        } else {
+            // Thêm user vào group nếu chưa có
+            let changed = false;
+            if (!groupConv.members.some((m) => String(m) === String(userId))) {
+                groupConv.members.push(userId);
+                changed = true;
+            }
+            if (!groupConv.members.some((m) => String(m) === String(event.organizer))) {
+                groupConv.members.push(event.organizer);
+                changed = true;
+            }
+            if (changed) {
+                await groupConv.save();
+            }
+        }
+
+        // Notify user được duyệt qua socket
+        try {
+            const socketId = getReceiverSocketId(String(userId));
+            if (socketId) {
+                getIO().to(socketId).emit('participation_approved', {
+                    eventId,
+                    eventTitle: event?.title,
+                    groupConversationId: groupConv._id,
+                });
+            }
+            
+            // Notify tất cả thành viên trong group để cập nhật chat list
+            const memberIds = groupConv.members.map(m => String(m));
+            emitToMembers(memberIds, 'group_chat_updated', {
+                conversationId: groupConv._id
+            });
+        } catch (_) {
+            // Socket notification không critical
+        }
+
+        const updatedParticipation = await Participation.findOne({ user: userId, event: eventId })
+            .populate('user', 'name email avatarURL')
+            .populate('reviewedBy', 'name email');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Participation approved',
+            data: updatedParticipation,
+            groupConversationId: groupConv._id,
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// PATCH /admin/events/:eventId/participations/:userId/reject — từ chối tham gia
+export const rejectParticipation = async (req, res) => {
+    try {
+        const adminId = req.user?.id || req.user?._id;
+        const { eventId, userId } = req.params;
+        const { reason = '' } = req.body;
+
+        const participation = await Participation.findOne({ user: userId, event: eventId });
+        if (!participation) {
+            return res.status(404).json({ success: false, message: 'Participation request not found' });
+        }
+
+        if (participation.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Request is not in pending state' });
+        }
+
+        participation.status = 'rejected';
+        participation.reviewedBy = adminId;
+        participation.reviewedAt = new Date();
+        await participation.save();
+
+        // Notify user bị từ chối qua socket
+        try {
+            const socketId = getReceiverSocketId(String(userId));
+            if (socketId) {
+                getIO().to(socketId).emit('participation_rejected', {
+                    eventId,
+                    reason,
+                });
+            }
+        } catch (_) {
+            // Socket notification không critical
+        }
+
+        const updatedParticipation = await Participation.findOne({ user: userId, event: eventId })
+            .populate('user', 'name email avatarURL')
+            .populate('reviewedBy', 'name email');
+
+        return res.status(200).json({
+            success: true,
+            message: 'Participation rejected',
+            data: updatedParticipation,
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+

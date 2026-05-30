@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
 import { useTranslation } from "../lib/i18n";
@@ -12,23 +12,43 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { ArrowLeft, MessageCircle, MessageCircleWarning } from "lucide-react";
+import { Input } from "../components/ui/input";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "../components/ui/dialog";
+import { ArrowLeft, MessageCircle, MessageCircleWarning, Users, Plus, Check } from "lucide-react";
 import {
     getConversations,
     getPendingConversations,
     UiConversation,
+    createGroupChat,
+    BackendUser,
 } from "../lib/conversationApi";
 import { initSocket } from "../lib/socket";
+import { getFriendList } from "../lib/userApi";
 
 type Tab = "chats" | "requests";
 
 export function UserChatsList() {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [tab, setTab] = useState<Tab>("chats");
     const [chats, setChats] = useState<UiConversation[]>([]);
     const [pendingChats, setPendingChats] = useState<UiConversation[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
+
+    // Create group dialog
+    const [showGroupDialog, setShowGroupDialog] = useState(false);
+    const [groupName, setGroupName] = useState("");
+    const [friends, setFriends] = useState<BackendUser[]>([]);
+    const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
+    const [creatingGroup, setCreatingGroup] = useState(false);
+    const [groupError, setGroupError] = useState("");
 
     const currentUserId = localStorage.getItem("userId") || "";
 
@@ -53,24 +73,95 @@ export function UserChatsList() {
         loadData();
     }, []);
 
+    // Load friends for group creation dialog
+    const loadFriends = async () => {
+        try {
+            const data = await getFriendList();
+            // getFriendList returns FriendshipData[] with { friendshipId, friend: UiUser }
+            setFriends(Array.isArray(data) ? data.map((item: any) => ({
+                _id: item.friend?.id || item.friend?._id,
+                name: item.friend?.name || "",
+                email: item.friend?.email || "",
+                avatarURL: item.friend?.avatar || item.friend?.avatarURL || "",
+            })) : []);
+        } catch {
+            setFriends([]);
+        }
+    };
+
+    const openGroupDialog = () => {
+        setGroupName("");
+        setSelectedFriendIds([]);
+        setGroupError("");
+        setShowGroupDialog(true);
+        loadFriends();
+    };
+
+    const toggleFriend = (friendId: string) => {
+        setSelectedFriendIds((prev) =>
+            prev.includes(friendId)
+                ? prev.filter((id) => id !== friendId)
+                : [...prev, friendId]
+        );
+    };
+
+    const handleCreateGroup = async () => {
+        if (!groupName.trim()) {
+            setGroupError(t("group_name_required"));
+            return;
+        }
+        if (selectedFriendIds.length === 0) {
+            setGroupError(t("group_members_required"));
+            return;
+        }
+
+        setCreatingGroup(true);
+        setGroupError("");
+        try {
+            const result = await createGroupChat(groupName.trim(), selectedFriendIds);
+            setShowGroupDialog(false);
+            navigate(`/user/chat/${result.conversationId}`);
+        } catch (error: any) {
+            setGroupError(error?.message || t("group_create_failed"));
+        } finally {
+            setCreatingGroup(false);
+        }
+    };
+
     // Realtime: listen for new message_request events to update pending badge
     useEffect(() => {
         if (!currentUserId) return;
-
         const socket = initSocket(currentUserId);
         if (!socket) return;
 
         const handleMessageRequest = () => {
-            // Reload pending list when a new request arrives
-            getPendingConversations()
-                .then(setPendingChats)
-                .catch(() => {});
+            getPendingConversations().then(setPendingChats).catch(() => {});
+        };
+
+        const handleNewMessage = () => {
+            // Refresh conversation list to update last message
+            getConversations().then(setChats).catch(() => {});
+        };
+
+        const handleParticipationApproved = () => {
+            // Refresh conversation list when added to an event group chat
+            getConversations().then(setChats).catch(() => {});
+        };
+
+        const handleGroupChatUpdated = () => {
+            getConversations().then(setChats).catch(() => {});
         };
 
         socket.on("message_request", handleMessageRequest);
+        socket.on("receive_message", handleNewMessage);
+        socket.on("participation_approved", handleParticipationApproved);
+        socket.on("group_chat_updated", handleGroupChatUpdated);
 
         return () => {
             socket.off("message_request", handleMessageRequest);
+            socket.off("receive_message", handleNewMessage);
+            socket.off("participation_approved", handleParticipationApproved);
+            socket.off("group_chat_updated", handleGroupChatUpdated);
         };
     }, [currentUserId]);
 
@@ -95,12 +186,18 @@ export function UserChatsList() {
             </header>
 
             <div className="max-w-3xl mx-auto px-6 py-8">
-                <Button asChild variant="ghost" className="mb-6">
-                    <Link to="/user/home">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        {t("back")}
-                    </Link>
-                </Button>
+                <div className="flex items-center justify-between mb-6">
+                    <Button asChild variant="ghost">
+                        <Link to="/user/home">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            {t("back")}
+                        </Link>
+                    </Button>
+                    <Button size="sm" onClick={openGroupDialog} className="flex items-center gap-1.5">
+                        <Plus className="h-4 w-4" />
+                        {t("create_group")}
+                    </Button>
+                </div>
 
                 <Card>
                     <CardHeader className="pb-0">
@@ -151,9 +248,7 @@ export function UserChatsList() {
                             <div className="p-6 text-center text-sm text-gray-500">{t("loading")}</div>
                         )}
                         {loadError && (
-                            <div className="p-6 text-center text-sm text-red-600">
-                                {loadError}
-                            </div>
+                            <div className="p-6 text-center text-sm text-red-600">{loadError}</div>
                         )}
 
                         {/* Empty states */}
@@ -191,6 +286,11 @@ export function UserChatsList() {
                                         <AvatarImage src={chat.avatar} />
                                         <AvatarFallback>{chat.name[0]}</AvatarFallback>
                                     </Avatar>
+                                    {chat.type === "group" && (
+                                        <span className="absolute -bottom-0.5 -right-0.5 h-5 w-5 bg-blue-600 rounded-full flex items-center justify-center">
+                                            <Users className="h-3 w-3 text-white" />
+                                        </span>
+                                    )}
                                     {tab === "requests" && (
                                         <span className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-amber-500 rounded-full flex items-center justify-center">
                                             <MessageCircleWarning className="h-2.5 w-2.5 text-white" />
@@ -201,13 +301,16 @@ export function UserChatsList() {
                                     <div className="flex items-center justify-between gap-2">
                                         <p className="font-medium text-sm truncate">{chat.name}</p>
                                         <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            {chat.type === "group" && (
+                                                <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-0 text-xs px-1.5">
+                                                    {t("group_label")}
+                                                </Badge>
+                                            )}
                                             {tab === "requests" && (
                                                 <Badge className="bg-amber-100 text-amber-800 border-0 text-xs px-1.5">{t("request_label")}</Badge>
                                             )}
                                             {tab === "chats" && chat.unread > 0 && (
-                                                <Badge variant="destructive" className="shrink-0">
-                                                    {chat.unread}
-                                                </Badge>
+                                                <Badge variant="destructive" className="shrink-0">{chat.unread}</Badge>
                                             )}
                                         </div>
                                     </div>
@@ -219,6 +322,87 @@ export function UserChatsList() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* ── Create Group Dialog ── */}
+            <Dialog open={showGroupDialog} onOpenChange={setShowGroupDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            {t("create_group")}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                {t("group_name_label")}
+                            </label>
+                            <Input
+                                placeholder={t("group_name_placeholder")}
+                                value={groupName}
+                                onChange={(e) => setGroupName(e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                {t("select_members")} ({selectedFriendIds.length} {t("selected")})
+                            </label>
+                            <div className="border rounded-lg overflow-hidden max-h-64 overflow-y-auto divide-y divide-gray-100">
+                                {friends.length === 0 ? (
+                                    <p className="p-4 text-sm text-gray-500 text-center">{t("no_friends")}</p>
+                                ) : (
+                                    friends.map((friend: any) => {
+                                        const isSelected = selectedFriendIds.includes(friend._id || friend.id);
+                                        const fid = friend._id || friend.id;
+                                        return (
+                                            <button
+                                                key={fid}
+                                                type="button"
+                                                className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
+                                                    isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                                                }`}
+                                                onClick={() => toggleFriend(fid)}
+                                            >
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarImage src={friend.avatarURL} />
+                                                    <AvatarFallback>{friend.name?.[0] || "?"}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">{friend.name}</p>
+                                                    <p className="text-xs text-gray-500 truncate">{friend.email}</p>
+                                                </div>
+                                                {isSelected && (
+                                                    <span className="h-5 w-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <Check className="h-3 w-3 text-white" />
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+
+                        {groupError && (
+                            <p className="text-sm text-red-600">{groupError}</p>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowGroupDialog(false)}>
+                            {t("cancel")}
+                        </Button>
+                        <Button
+                            onClick={handleCreateGroup}
+                            disabled={creatingGroup || !groupName.trim() || selectedFriendIds.length === 0}
+                        >
+                            {creatingGroup ? t("creating") : t("create_group")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
