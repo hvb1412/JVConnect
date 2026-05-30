@@ -359,3 +359,97 @@ export async function deleteAdminEvent(eventId: string): Promise<void> {
         throw error;
     }
 }
+
+// ── Event Participation Management ────────────────────────────────────────────
+
+export type AdminParticipation = {
+    _id: string;
+    user: {
+        _id: string;
+        name: string;
+        email: string;
+        avatarURL?: string;
+    };
+    event: string;
+    status: "pending" | "approved" | "rejected";
+    reviewedBy?: {
+        _id: string;
+        name: string;
+        email: string;
+    } | null;
+    reviewedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export async function listEventParticipations(
+    eventId: string,
+    status?: "pending" | "approved" | "rejected"
+): Promise<AdminParticipation[]> {
+    try {
+        const response = await api.get<{ success: boolean; data: AdminParticipation[] }>(
+            `/admin/events/${eventId}/participations`,
+            { params: status ? { status } : undefined }
+        );
+        if (response.data.success) return response.data.data;
+        throw new Error("Failed to fetch participations");
+    } catch (error: any) {
+        if (error.response?.data?.message) throw new Error(error.response.data.message);
+        throw error;
+    }
+}
+
+export async function listPendingParticipations(): Promise<AdminParticipation[]> {
+    try {
+        const response = await api.get<{ success: boolean; data: AdminParticipation[] }>(
+            `/admin/events/participations/pending`
+        );
+        if (response.data.success) return response.data.data;
+        throw new Error("Failed to fetch pending participations");
+    } catch (error: any) {
+        if (error.response?.data?.message) throw new Error(error.response.data.message);
+        throw error;
+    }
+}
+
+export async function approveParticipation(
+    eventId: string,
+    userId: string
+): Promise<{ participation: AdminParticipation; groupConversationId: string }> {
+    try {
+        const response = await api.patch<{
+            success: boolean;
+            data: AdminParticipation;
+            groupConversationId: string;
+        }>(`/admin/events/${eventId}/participations/${userId}/approve`, {});
+        if (response.data.success) {
+            return {
+                participation: response.data.data,
+                groupConversationId: response.data.groupConversationId,
+            };
+        }
+        throw new Error("Failed to approve participation");
+    } catch (error: any) {
+        if (error.response?.data?.message) throw new Error(error.response.data.message);
+        throw error;
+    }
+}
+
+export async function rejectParticipation(
+    eventId: string,
+    userId: string,
+    reason?: string
+): Promise<AdminParticipation> {
+    try {
+        const response = await api.patch<{ success: boolean; data: AdminParticipation }>(
+            `/admin/events/${eventId}/participations/${userId}/reject`,
+            { reason: reason || "" }
+        );
+        if (response.data.success) return response.data.data;
+        throw new Error("Failed to reject participation");
+    } catch (error: any) {
+        if (error.response?.data?.message) throw new Error(error.response.data.message);
+        throw error;
+    }
+}
+

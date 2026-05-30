@@ -67,3 +67,22 @@ export const getReceiverSocketId = (receiverId) => {
 export const isUserOnline = (userId) => {
     return userSocketMap.has(userId);
 };
+
+/**
+ * Emit một sự kiện đến tất cả thành viên trong group conversation
+ * (trừ chính người gửi nếu có excludeUserId)
+ * @param {string[]} memberIds - danh sách userId thành viên
+ * @param {string} eventName - tên socket event
+ * @param {object} payload - dữ liệu gửi đi
+ * @param {string|null} excludeUserId - userId sẽ không nhận (người gửi)
+ */
+export const emitToMembers = (memberIds, eventName, payload, excludeUserId = null) => {
+    if (!io) return;
+    for (const memberId of memberIds) {
+        if (excludeUserId && String(memberId) === String(excludeUserId)) continue;
+        const socketId = userSocketMap.get(String(memberId));
+        if (socketId) {
+            io.to(socketId).emit(eventName, payload);
+        }
+    }
+};

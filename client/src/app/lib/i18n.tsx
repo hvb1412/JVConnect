@@ -25,7 +25,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     try {
       const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-      return (raw as Lang) || "ja";
+      if (raw === "ja" || raw === "vi") return raw;
+      return "ja";
     } catch {
       return "ja";
     }
@@ -75,7 +76,8 @@ export function useTranslation() {
 export function getStoredLanguage(): Lang {
   try {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-    return (raw as Lang) || "ja";
+    if (raw === "ja" || raw === "vi") return raw;
+    return "ja";
   } catch {
     return "ja";
   }

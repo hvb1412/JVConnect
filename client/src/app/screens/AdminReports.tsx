@@ -110,10 +110,10 @@ export function AdminReports() {
 
     const filteredReports = useMemo(() => {
         switch (filter) {
-            case "ユーザー通報": return reports.filter((r) => !!r.user);
-            case "イベント通報": return reports.filter((r) => !!r.event);
-            case "未対応": return reports.filter((r) => r.decision === "pending");
-            case "対応済み": return reports.filter((r) => r.decision !== "pending");
+            case "user_reports": return reports.filter((r) => !!r.user);
+            case "event_reports": return reports.filter((r) => !!r.event);
+            case "pending": return reports.filter((r) => r.decision === "pending");
+            case "resolved": return reports.filter((r) => r.decision !== "pending");
             default: return reports;
         }
     }, [filter, reports]);
@@ -332,7 +332,7 @@ export function AdminReports() {
 
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                                    {isUserReport(selected) ? "通報対象ユーザー" : "通報対象イベント"}
+                                    {t("target")}
                                 </p>
                                 {isUserReport(selected) ? (
                                     <div className="flex items-center gap-2">
@@ -497,7 +497,7 @@ export function AdminReports() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <XCircle className="h-5 w-5 text-red-500" />
-                            通報を却下する
+                            {t("reject_action")}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 text-sm">

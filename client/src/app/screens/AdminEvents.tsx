@@ -9,7 +9,7 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
-import { Plus, Edit, Trash2, Calendar, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, Upload, Users, Check, X, Clock, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,11 @@ import {
   updateAdminEvent,
   deleteAdminEvent,
   AdminEvent,
+  listEventParticipations,
+  listPendingParticipations,
+  approveParticipation,
+  rejectParticipation,
+  AdminParticipation,
 } from "../lib/adminApi";
 import { useTranslation } from "../lib/i18n";
 import { uploadImageByUrl } from "../lib/uploadApi";
@@ -54,7 +59,75 @@ export function AdminEvents() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<AdminEvent>>({});
 
+  const [viewOpen, setViewOpen] = useState(false);
+  const [pendingEventIds, setPendingEventIds] = useState<Set<string>>(new Set());
+
   const selected = selectedId ? events.find((e) => e._id === selectedId) : null;
+
+  // ── Participation management state ────────────────────────────────────────
+  const [participationDialogOpen, setParticipationDialogOpen] = useState(false);
+  const [participationEventId, setParticipationEventId] = useState<string | null>(null);
+  const [participationEventTitle, setParticipationEventTitle] = useState("");
+  const [participations, setParticipations] = useState<AdminParticipation[]>([]);
+  const [participationsLoading, setParticipationsLoading] = useState(false);
+  const [participationActionLoading, setParticipationActionLoading] = useState<string | null>(null);
+
+  const openParticipationDialog = async (eventId: string, eventTitle: string) => {
+    setParticipationEventId(eventId);
+    setParticipationEventTitle(eventTitle);
+    setParticipationDialogOpen(true);
+    setParticipationsLoading(true);
+    try {
+      const data = await listEventParticipations(eventId);
+      setParticipations(data);
+    } catch (err) {
+      console.error("Failed to load participations", err);
+    } finally {
+      setParticipationsLoading(false);
+    }
+  };
+
+  const handleApproveParticipation = async (userId: string) => {
+    if (!participationEventId) return;
+    setParticipationActionLoading(userId);
+    try {
+      const result = await approveParticipation(participationEventId, userId);
+      setParticipations((prev) =>
+        prev.map((p) => (p.user._id === userId ? result.participation : p))
+      );
+    } catch (err: any) {
+      alert(err?.message || "Failed to approve");
+    } finally {
+      setParticipationActionLoading(null);
+    }
+  };
+
+  const handleRejectParticipation = async (userId: string) => {
+    if (!participationEventId) return;
+    setParticipationActionLoading(userId);
+    try {
+      const result = await rejectParticipation(participationEventId, userId);
+      setParticipations((prev) =>
+        prev.map((p) => (p.user._id === userId ? result : p))
+      );
+    } catch (err: any) {
+      alert(err?.message || "Failed to reject");
+    } finally {
+      setParticipationActionLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    if (participationEventId && !participationsLoading) {
+      const hasPending = participations.some(p => p.status === 'pending');
+      setPendingEventIds(prev => {
+        const next = new Set(prev);
+        if (hasPending) next.add(participationEventId);
+        else next.delete(participationEventId);
+        return next;
+      });
+    }
+  }, [participations, participationsLoading, participationEventId]);
 
   useEffect(() => {
     fetchEvents();
@@ -129,8 +202,21 @@ export function AdminEvents() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const data = await listAdminEvents();
+      const [data, pendingData] = await Promise.all([
+        listAdminEvents(),
+        listPendingParticipations()
+      ]);
       setEvents(data);
+      
+      const pendingSet = new Set<string>();
+      pendingData.forEach(p => {
+        if (p.event && (typeof p.event === 'string' ? p.event : (p.event as any)._id)) {
+           const eventId = typeof p.event === 'string' ? p.event : (p.event as any)._id;
+           pendingSet.add(eventId);
+        }
+      });
+      setPendingEventIds(pendingSet);
+
       setError("");
     } catch (err: any) {
       setError(err.message || "Failed to load events");
@@ -226,6 +312,11 @@ export function AdminEvents() {
   const openDelete = (id: string) => {
     setSelectedId(id);
     setDeleteOpen(true);
+  };
+
+  const openView = (id: string) => {
+    setSelectedId(id);
+    setViewOpen(true);
   };
 
   const totalEvents = events.length;
@@ -503,6 +594,32 @@ export function AdminEvents() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                          <div className="relative">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => openParticipationDialog(event._id, event.title)}
+                              aria-label="Manage participants"
+                              title="参加申請管理"
+                            >
+                              <Users className="h-4 w-4" />
+                            </Button>
+                            {pendingEventIds.has(event._id) && (
+                              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openView(event._id)}
+                            aria-label={t("view_details")}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -534,6 +651,68 @@ export function AdminEvents() {
           </CardContent>
         </Card>
       </div>
+
+      {/* View Dialog */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("event_label")}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4 py-4">
+              {selected.imageURL && (
+                <img
+                  src={selected.imageURL}
+                  alt={selected.title}
+                  className="w-full h-64 object-cover rounded-md mb-4"
+                />
+              )}
+              <div>
+                <h3 className="text-2xl font-bold">{selected.title}</h3>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(selected.eventDate).toLocaleDateString("ja-JP")}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {selected.startTime} - {selected.endTime}
+                  </div>
+                  <Badge variant={selected.status === "active" ? "default" : "secondary"}>
+                    {selected.status === "active" ? t("published") : t("draft")}
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-1">{t("location_label")}</h4>
+                <p className="text-gray-600">{selected.location}</p>
+              </div>
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-1">{t("details_label")}</h4>
+                <p className="text-gray-600 whitespace-pre-wrap">{selected.detail}</p>
+              </div>
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-700 mb-1">{t("col_organizer")}</h4>
+                <div className="flex items-center gap-2">
+                  {selected.organizer?.avatarURL ? (
+                    <img src={selected.organizer.avatarURL} alt={selected.organizer.name} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+                      {selected.organizer?.name?.[0] || "?"}
+                    </div>
+                  )}
+                  <span className="text-sm text-gray-600">{selected.organizer?.name || "Unknown"}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewOpen(false)}>
+                  {t("close")}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -661,12 +840,95 @@ export function AdminEvents() {
           </DialogHeader>
           {selected && (
             <div className="text-sm text-gray-700">
-              対象: <span className="font-medium">{selected.title}</span>
+              {t("target")}: <span className="font-medium">{selected.title}</span>
             </div>
           )}
           <DialogFooter>
             <Button variant="destructive" onClick={handleDeleteEvent}>{t("delete")}</Button>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>{t("cancel")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Participation Management Dialog ── */}
+      <Dialog open={participationDialogOpen} onOpenChange={setParticipationDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              {t("stat_pending_participations")}
+            </DialogTitle>
+            <DialogDescription>
+              {participationEventTitle}
+            </DialogDescription>
+          </DialogHeader>
+
+          {participationsLoading ? (
+            <div className="p-6 text-center text-gray-500">{t("loading")}</div>
+          ) : participations.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">{t("no_pending_participations")}</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {participations.map((p) => (
+                <div key={p._id} className="flex items-center gap-3 py-3">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {p.user.avatarURL ? (
+                      <img src={p.user.avatarURL} alt={p.user.name} className="h-10 w-10 object-cover" />
+                    ) : (
+                      <span className="text-sm font-medium">{p.user.name[0]}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{p.user.email}</p>
+                    <p className="text-xs text-gray-400">{new Date(p.createdAt).toLocaleDateString("ja-JP")}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {p.status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          disabled={participationActionLoading === p.user._id}
+                          onClick={() => handleApproveParticipation(p.user._id)}
+                        >
+                          <Check className="h-3.5 w-3.5 mr-1" />
+                          {t("approve")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          disabled={participationActionLoading === p.user._id}
+                          onClick={() => handleRejectParticipation(p.user._id)}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          {t("reject")}
+                        </Button>
+                      </>
+                    )}
+                    {p.status === "approved" && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        <Check className="h-3 w-3 mr-1" />
+                        {t("status_approved")}
+                      </Badge>
+                    )}
+                    {p.status === "rejected" && (
+                      <Badge className="bg-red-100 text-red-800 border-red-200">
+                        <X className="h-3 w-3 mr-1" />
+                        {t("status_rejected")}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setParticipationDialogOpen(false)}>
+              {t("close")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

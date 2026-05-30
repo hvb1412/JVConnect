@@ -73,6 +73,19 @@ export const getEventById = async (id: string) => {
   };
 };
 
+export type ParticipationStatus = "none" | "pending" | "approved" | "rejected";
+
+export const getMyParticipationStatus = async (id: string): Promise<ParticipationStatus> => {
+  try {
+    const response = await api.get(`/events/${id}/participation-status`, {
+      headers: getAuthHeader(),
+    });
+    return response.data?.data?.status || "none";
+  } catch {
+    return "none";
+  }
+};
+
 export const joinEvent = async (id: string) => {
   const response = await api.post(`/events/${id}/join`, {}, {
     headers: getAuthHeader()

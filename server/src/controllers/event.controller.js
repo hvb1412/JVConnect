@@ -1,6 +1,9 @@
 import Event from '../models/Event.js';
 import Report from '../models/Report.js';
 import Friend from '../models/Friend.js';
+import Participation from '../models/Participation.js';
+import User from '../models/User.js';
+import { getIO, emitToMembers } from '../socket.js';
 import jwt from 'jsonwebtoken';
 
 const getAuthUserId = (req) => req.user?.id || req.user?._id || null;
@@ -179,80 +182,154 @@ export const getSuggestedEvents = async (req, res) => {
 };
 
 
-// Vương thêm code của mình vào đây nhé
 const MAX_PARTICIPANTS = 20
 
+// POST /events/:id/join — đăng ký tham gia (tạo pending request thay vì tham gia ngay)
 export const joinEvent = async (req, res) => {
   try {
     const { id } = req.params
     const userId = req.user.id
 
     const event = await Event.findById(id)
-
     if (!event) {
-      return res.status(404).json({
-        message: 'Event not found',
-      })
+      return res.status(404).json({ message: 'Event not found' })
     }
 
-    const alreadyJoined = event.participants.some(
-      (participantId) => participantId.toString() === userId
-    )
-
-    if (alreadyJoined) {
-      return res.status(400).json({
-        message: 'Already joined',
-      })
+    // Kiểm tra đã được duyệt tham gia chưa
+    const approvedParticipation = await Participation.findOne({
+      user: userId,
+      event: id,
+      status: 'approved',
+    })
+    if (approvedParticipation) {
+      return res.status(400).json({ message: 'Already joined' })
     }
 
+    // Kiểm tra đã có pending request chưa
+    const existingRequest = await Participation.findOne({
+      user: userId,
+      event: id,
+      status: 'pending',
+    })
+    if (existingRequest) {
+      return res.status(400).json({ message: 'Join request already sent, waiting for approval' })
+    }
+
+    // Kiểm tra giới hạn số người tham gia
     if (event.participants.length >= MAX_PARTICIPANTS) {
-      return res.status(400).json({
-        message: 'Event is full',
-      })
+      return res.status(400).json({ message: 'Event is full' })
     }
 
-    event.participants.push(userId)
+    // Tạo participation request mới với status pending
+    const participation = await Participation.create({
+      user: userId,
+      event: id,
+      status: 'pending',
+    })
 
-    await event.save()
+    try {
+      const admins = await User.find({
+        $or: [
+          { role: 'admin' },
+          { email: 'admin@jvconnect.com' }
+        ]
+      }).select('_id');
+      const adminIds = admins.map(a => String(a._id));
+      
+      emitToMembers(adminIds, 'new_participation_request', {
+        participationId: participation._id,
+        eventId: id,
+        eventTitle: event.title,
+        userId: userId,
+        userName: req.user.name || 'ユーザー'
+      });
+    } catch (err) {
+      console.error('Socket notification error:', err);
+    }
 
-    res.json({
-      message: 'Joined successfully',
-      participants: event.participants,
+    res.status(201).json({
+      message: 'Join request sent, waiting for admin approval',
+      status: 'pending',
     })
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    })
+    res.status(500).json({ message: error.message })
   }
 }
 
+// POST /events/:id/cancel — hủy đăng ký (xóa pending request hoặc rời khỏi sự kiện)
 export const cancelJoinEvent = async (req, res) => {
   try {
     const { id } = req.params
     const userId = req.user.id
 
     const event = await Event.findById(id)
-
     if (!event) {
-      return res.status(404).json({
-        message: 'Event not found',
-      })
+      return res.status(404).json({ message: 'Event not found' })
     }
 
-    event.participants = event.participants.filter(
-      (participantId) => participantId.toString() !== userId
-    )
+    // Xóa participation record (pending hoặc approved)
+    const deleted = await Participation.findOneAndDelete({
+      user: userId,
+      event: id,
+    })
 
-    await event.save()
+    if (!deleted) {
+      return res.status(400).json({ message: 'No participation record found' })
+    }
+
+    // Nếu đã approved, xóa khỏi participants array trong Event
+    if (deleted.status === 'approved') {
+      event.participants = event.participants.filter(
+        (participantId) => participantId.toString() !== userId
+      )
+      await event.save()
+
+      // Xóa khỏi group chat của sự kiện nếu có
+      import('../models/Conversation.js').then(async ({ default: Conversation }) => {
+        const groupConv = await Conversation.findOne({ type: 'group', eventId: id })
+        if (groupConv) {
+          groupConv.members = groupConv.members.filter(m => m.toString() !== userId)
+          await groupConv.save()
+          
+          import('../socket.js').then(({ emitToMembers }) => {
+            const memberIds = groupConv.members.map(m => m.toString())
+            emitToMembers(memberIds, 'group_chat_updated', {
+              conversationId: groupConv._id
+            })
+          }).catch(console.error)
+        }
+      }).catch(console.error)
+    }
 
     res.json({
-      message: 'Canceled successfully',
-      participants: event.participants,
+      message: 'Participation cancelled successfully',
     })
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
+    res.status(500).json({ message: error.message })
+  }
+}
+
+// GET /events/:id/participation-status — lấy trạng thái đăng ký của user hiện tại
+export const getMyParticipationStatus = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user.id
+
+    const participation = await Participation.findOne({
+      user: userId,
+      event: id,
     })
+
+    if (!participation) {
+      return res.status(200).json({ success: true, data: { status: 'none' } })
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { status: participation.status, participationId: participation._id },
+    })
+  } catch (error) {
+    res.status(500).json({ message: error.message })
   }
 }
 
