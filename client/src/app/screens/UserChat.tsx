@@ -20,9 +20,24 @@ import {
     Users,
     ChevronDown,
     ChevronUp,
+    MoreVertical,
+    Trash2,
+    LogOut,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "../components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import {
     getConversationMessages,
     getConversationWithUser,
@@ -37,6 +52,8 @@ import {
     recallMessage,
     getPinnedMessages,
     BackendUser,
+    deleteConversation,
+    leaveGroupChat,
 } from "../lib/conversationApi";
 import { initSocket, checkOnline } from "../lib/socket.ts";
 
@@ -55,6 +72,8 @@ export function UserChat() {
     const [groupName, setGroupName] = useState<string>("");
     const [groupAvatar, setGroupAvatar] = useState<string>("");
     const [groupMembers, setGroupMembers] = useState<BackendUser[]>([]);
+    const [groupAdminId, setGroupAdminId] = useState<string | null>(null);
+    const [eventId, setEventId] = useState<string | null>(null);
     const [showMembers, setShowMembers] = useState(false);
     const [chatUser, setChatUser] = useState<{
         id: string;
@@ -79,10 +98,12 @@ export function UserChat() {
     // Pinned messages banner
     const [pinnedMessages, setPinnedMessages] = useState<BackendMessage[]>([]);
     const [showPinnedBanner, setShowPinnedBanner] = useState(true);
+    const [showPinnedDialog, setShowPinnedDialog] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const currentUserId = localStorage.getItem("userId") || "";
+    const isAdmin = localStorage.getItem("role") === "admin";
 
     // ─── Scroll to bottom whenever messages change ──────────────────────────
     useEffect(() => {
@@ -151,9 +172,11 @@ export function UserChat() {
                 setIsGroup(result.isGroup);
 
                 if (result.isGroup) {
-                    setGroupName(result.groupName || "グループ");
+                    setGroupName(result.groupName || t("group_chat"));
                     setGroupAvatar(result.groupAvatar || "");
                     setGroupMembers(result.members || []);
+                    setGroupAdminId(result.adminId || null);
+                    setEventId(result.eventId || null);
                 } else {
                     setIsPending(result.isPending);
                     setInitiatorId(result.initiatorId);
@@ -376,6 +399,32 @@ export function UserChat() {
         }
     };
 
+    const handleDeleteChat = async () => {
+        if (!window.confirm(t("confirm_delete_chat", { defaultValue: "本当にこのチャットを削除しますか？" }))) return;
+        if (!conversationId) return;
+        
+        try {
+            await deleteConversation(conversationId);
+            navigate("/user/chats");
+        } catch (error: any) {
+            console.error("Failed to delete conversation", error);
+            alert(error?.message || t("delete_failed", { defaultValue: "削除に失敗しました" }));
+        }
+    };
+
+    const handleLeaveGroup = async () => {
+        if (!window.confirm(t("confirm_leave_group", { defaultValue: "本当にこのグループを退出しますか？" }))) return;
+        if (!conversationId) return;
+        
+        try {
+            await leaveGroupChat(conversationId);
+            navigate("/user/chats");
+        } catch (error: any) {
+            console.error("Failed to leave group", error);
+            alert(error?.message || t("leave_failed", { defaultValue: "退出に失敗しました" }));
+        }
+    };
+
     const displayName = isGroup ? groupName : (chatUser?.name || t("loading"));
     const displayAvatar = isGroup ? groupAvatar : (chatUser?.avatar || "");
 
@@ -385,13 +434,23 @@ export function UserChat() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
-                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
-                        </nav>
+                        {isAdmin ? (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">{t("admin_dashboard_title")}</Link>
+                                <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
+                                <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
+                                <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
+                                <Link to="/user/chats" className="text-blue-600 font-medium">{t("messages_title", { defaultValue: "Tin nhắn" })}</Link>
+                            </nav>
+                        ) : (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                                <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                                <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                                <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                                <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
+                            </nav>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <HeaderActions />
@@ -424,9 +483,14 @@ export function UserChat() {
                         <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h2 className="font-semibold">{displayName}</h2>
-                                {isGroup && (
+                                {isGroup && !eventId && (
                                     <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
                                         {t("group_chat")}
+                                    </Badge>
+                                )}
+                                {isGroup && eventId && (
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200 ml-1">
+                                        {t("event_group")}
                                     </Badge>
                                 )}
                                 {isPending && !isGroup && (
@@ -451,13 +515,46 @@ export function UserChat() {
                                 </p>
                             )}
                         </div>
-                        {!isGroup && chatUser && (
-                            <Button asChild variant="outline" size="sm">
-                                <Link to={`/user/profile/${chatUser.id}`}>
-                                    {t("view_profile")}
-                                </Link>
-                            </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {pinnedMessages.length > 0 && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => setShowPinnedDialog(true)} 
+                                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                                    title={t("pinned_messages") || "Ghim"}
+                                >
+                                    <Pin className="h-5 w-5" />
+                                </Button>
+                            )}
+                            {!isGroup && chatUser && (
+                                <Button asChild variant="outline" size="sm">
+                                    <Link to={`/user/profile/${chatUser.id}`}>
+                                        {t("view_profile")}
+                                    </Link>
+                                </Button>
+                            )}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 ml-1">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {isGroup ? (
+                                        <DropdownMenuItem onClick={handleLeaveGroup} className="text-red-600 cursor-pointer">
+                                            <LogOut className="h-4 w-4 mr-2" />
+                                            {t("leave_group", { defaultValue: "退出" })}
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <DropdownMenuItem onClick={handleDeleteChat} className="text-red-600 cursor-pointer">
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            {t("delete_chat", { defaultValue: "チャットを削除" })}
+                                        </DropdownMenuItem>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
 
                     {/* ── Group members panel ── */}
@@ -480,7 +577,10 @@ export function UserChat() {
 
                     {/* ── Pinned messages banner ── */}
                     {pinnedMessages.length > 0 && showPinnedBanner && conversationId && (
-                        <div className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 flex items-center gap-2">
+                        <div 
+                            className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-yellow-100 transition-colors"
+                            onClick={() => setShowPinnedDialog(true)}
+                        >
                             <Pin className="h-4 w-4 text-yellow-600 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-yellow-800 truncate">
@@ -491,8 +591,11 @@ export function UserChat() {
                                 )}
                             </div>
                             <button
-                                onClick={() => setShowPinnedBanner(false)}
-                                className="text-yellow-600 hover:text-yellow-800 text-xs flex-shrink-0"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowPinnedBanner(false);
+                                }}
+                                className="text-yellow-600 hover:text-yellow-800 text-xs flex-shrink-0 p-1"
                             >
                                 ✕
                             </button>
@@ -649,6 +752,44 @@ export function UserChat() {
                 </Card>
             </div>
 
+            {/* ── Pinned Messages Dialog ── */}
+            <Dialog open={showPinnedDialog} onOpenChange={setShowPinnedDialog}>
+                <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pin className="h-5 w-5 text-yellow-500" />
+                            {t("pinned_messages", { defaultValue: "Tin nhắn đã ghim" })}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-4">
+                        {pinnedMessages.map((msg) => (
+                            <div key={msg._id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative group">
+                                <div className="flex items-start gap-2 mb-2">
+                                    <Avatar className="h-6 w-6">
+                                        <AvatarImage src={msg.sender?.avatarURL || ""} />
+                                        <AvatarFallback>{msg.sender?.name?.[0] || "?"}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-gray-700 truncate">{msg.sender?.name}</p>
+                                        <p className="text-[10px] text-gray-500">
+                                            {new Date(msg.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handlePin(msg._id)}
+                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                        title={t("unpin_message")}
+                                    >
+                                        <PinOff className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* ── Context Menu ── */}
             {contextMenu && (
                 <div
@@ -666,7 +807,7 @@ export function UserChat() {
                             <><Pin className="h-4 w-4 text-yellow-500" /> {t("pin_message")}</>
                         )}
                     </button>
-                    {contextMenu.msgSender === "me" && (
+                    {(contextMenu.msgSender === "me" || (isGroup && currentUserId && groupAdminId === currentUserId)) && (
                         <button
                             className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                             onClick={() => handleRecall(contextMenu.msgId)}

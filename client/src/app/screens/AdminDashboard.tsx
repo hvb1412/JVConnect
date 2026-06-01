@@ -132,6 +132,7 @@ export function AdminDashboard() {
               <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
               <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
               <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
+              <Link to="/user/chats" className="text-gray-600 hover:text-gray-900">{t("messages_title", { defaultValue: "Tin nhắn" })}</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">

@@ -367,6 +367,14 @@ export async function declineMessageRequest(conversationId: string): Promise<voi
     await api.delete(`/conversations/${conversationId}/decline`, { headers: getAuthHeader() });
 }
 
+export async function deleteConversation(conversationId: string): Promise<void> {
+    await api.delete(`/conversations/${conversationId}`, { headers: getAuthHeader() });
+}
+
+export async function leaveGroupChat(conversationId: string): Promise<void> {
+    await api.delete(`/conversations/${conversationId}/members/me`, { headers: getAuthHeader() });
+}
+
 export async function markConversationAsRead(conversationId: string): Promise<void> {
     try {
         await api.patch(`/conversations/${conversationId}/read`, {}, { headers: getAuthHeader() });

@@ -51,7 +51,7 @@ export function UserChatsList() {
     const [groupError, setGroupError] = useState("");
 
     const currentUserId = localStorage.getItem("userId") || "";
-
+    const isAdmin = localStorage.getItem("role") === "admin";
     const loadData = async () => {
         setLoading(true);
         setLoadError(null);
@@ -135,21 +135,21 @@ export function UserChatsList() {
         if (!socket) return;
 
         const handleMessageRequest = () => {
-            getPendingConversations().then(setPendingChats).catch(() => {});
+            getPendingConversations().then(setPendingChats).catch(() => { });
         };
 
         const handleNewMessage = () => {
             // Refresh conversation list to update last message
-            getConversations().then(setChats).catch(() => {});
+            getConversations().then(setChats).catch(() => { });
         };
 
         const handleParticipationApproved = () => {
             // Refresh conversation list when added to an event group chat
-            getConversations().then(setChats).catch(() => {});
+            getConversations().then(setChats).catch(() => { });
         };
 
         const handleGroupChatUpdated = () => {
-            getConversations().then(setChats).catch(() => {});
+            getConversations().then(setChats).catch(() => { });
         };
 
         socket.on("message_request", handleMessageRequest);
@@ -173,13 +173,23 @@ export function UserChatsList() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-blue-600 font-medium">{t("nav_home")}</Link>
-                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
-                        </nav>
+                        {isAdmin ? (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">{t("admin_dashboard_title")}</Link>
+                                <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
+                                <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
+                                <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
+                                <Link to="/user/chats" className="text-blue-600 font-medium">{t("messages_title", { defaultValue: "Tin nhắn" })}</Link>
+                            </nav>
+                        ) : (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/user/home" className="text-blue-600 font-medium">{t("nav_home")}</Link>
+                                <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                                <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                                <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                                <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
+                            </nav>
+                        )}
                     </div>
                     <HeaderActions />
                 </div>
@@ -188,15 +198,17 @@ export function UserChatsList() {
             <div className="max-w-3xl mx-auto px-6 py-8">
                 <div className="flex items-center justify-between mb-6">
                     <Button asChild variant="ghost">
-                        <Link to="/user/home">
+                        <Link to={isAdmin ? "/admin/dashboard" : "/user/home"}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             {t("back")}
                         </Link>
                     </Button>
-                    <Button size="sm" onClick={openGroupDialog} className="flex items-center gap-1.5">
-                        <Plus className="h-4 w-4" />
-                        {t("create_group")}
-                    </Button>
+                    {!isAdmin && (
+                        <Button size="sm" onClick={openGroupDialog} className="flex items-center gap-1.5">
+                            <Plus className="h-4 w-4" />
+                            {t("create_group")}
+                        </Button>
+                    )}
                 </div>
 
                 <Card>
@@ -210,11 +222,10 @@ export function UserChatsList() {
                         <div className="flex border-b border-gray-200">
                             <button
                                 onClick={() => setTab("chats")}
-                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                                    tab === "chats"
+                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "chats"
                                         ? "border-blue-600 text-blue-600"
                                         : "border-transparent text-gray-500 hover:text-gray-800"
-                                }`}
+                                    }`}
                             >
                                 <MessageCircle className="h-4 w-4" />
                                 {t("tab_chats")}
@@ -224,22 +235,23 @@ export function UserChatsList() {
                                     </Badge>
                                 )}
                             </button>
-                            <button
-                                onClick={() => setTab("requests")}
-                                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                                    tab === "requests"
-                                        ? "border-amber-500 text-amber-600"
-                                        : "border-transparent text-gray-500 hover:text-gray-800"
-                                }`}
-                            >
-                                <MessageCircleWarning className="h-4 w-4" />
-                                {t("message_request")}
-                                {pendingChats.length > 0 && (
-                                    <Badge className="text-xs px-1.5 py-0.5 min-w-[20px] text-center bg-amber-500 hover:bg-amber-500">
-                                        {pendingChats.length}
-                                    </Badge>
-                                )}
-                            </button>
+                            {!isAdmin && (
+                                <button
+                                    onClick={() => setTab("requests")}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "requests"
+                                            ? "border-amber-500 text-amber-600"
+                                            : "border-transparent text-gray-500 hover:text-gray-800"
+                                        }`}
+                                >
+                                    <MessageCircleWarning className="h-4 w-4" />
+                                    {t("message_request")}
+                                    {pendingChats.length > 0 && (
+                                        <Badge className="text-xs px-1.5 py-0.5 min-w-[20px] text-center bg-amber-500 hover:bg-amber-500">
+                                            {pendingChats.length}
+                                        </Badge>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </CardHeader>
 
@@ -275,11 +287,10 @@ export function UserChatsList() {
                             <Link
                                 key={chat.id}
                                 to={`/user/chat/${chat.id}`}
-                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border ${
-                                    tab === "requests"
+                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border ${tab === "requests"
                                         ? "border-amber-100 bg-amber-50 hover:bg-amber-100 hover:border-amber-200"
                                         : "border-transparent hover:bg-gray-100 hover:border-gray-200"
-                                }`}
+                                    }`}
                             >
                                 <div className="relative">
                                     <Avatar className="h-12 w-12">
@@ -301,9 +312,14 @@ export function UserChatsList() {
                                     <div className="flex items-center justify-between gap-2">
                                         <p className="font-medium text-sm truncate">{chat.name}</p>
                                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                                            {chat.type === "group" && (
+                                            {chat.type === "group" && !chat.eventId && (
                                                 <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-0 text-xs px-1.5">
                                                     {t("group_label")}
+                                                </Badge>
+                                            )}
+                                            {chat.type === "group" && chat.eventId && (
+                                                <Badge variant="secondary" className="bg-purple-50 text-purple-600 border-0 text-xs px-1.5">
+                                                    {t("event_group")}
                                                 </Badge>
                                             )}
                                             {tab === "requests" && (
@@ -360,9 +376,8 @@ export function UserChatsList() {
                                             <button
                                                 key={fid}
                                                 type="button"
-                                                className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
-                                                    isSelected ? "bg-blue-50" : "hover:bg-gray-50"
-                                                }`}
+                                                className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                                                    }`}
                                                 onClick={() => toggleFriend(fid)}
                                             >
                                                 <Avatar className="h-9 w-9">
