@@ -5,11 +5,13 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MessageCircle } from "lucide-react";
 import { getConversations, UiConversation } from "../lib/conversationApi";
+import { useTranslation } from "../lib/i18n";
 import { initSocket } from "../lib/socket";
 
 export function ChatList({ max = 5 }: { max?: number }) {
     const [items, setItems] = useState<UiConversation[]>([]);
     const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
 
     useEffect(() => {
         let mounted = true;
@@ -97,14 +99,14 @@ export function ChatList({ max = 5 }: { max?: number }) {
     }, [max]);
 
     if (loading) {
-        return <div className="text-sm text-gray-500">読み込み中...</div>;
+        return <div className="text-sm text-gray-500">{t("loading")}</div>;
     }
 
     return (
         <>
             {items.length === 0 && (
                 <div className="text-sm text-gray-500">
-                    現在、チャットはありません。
+                    {t("no_chats")}
                 </div>
             )}
             {items.map((chat) => (
@@ -144,7 +146,7 @@ export function ChatList({ max = 5 }: { max?: number }) {
                     className="inline-flex w-full items-center justify-center"
                 >
                     <MessageCircle className="mr-2 h-4 w-4" />
-                    すべて表示
+                    {t("view_all")}
                 </Link>
             </Button>
         </>

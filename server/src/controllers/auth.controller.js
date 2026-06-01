@@ -19,7 +19,7 @@ const isUserBanned = (user) => {
 
 export const register = async (req, res) => {
     try {
-        const { email, password, name, avatarURL } = req.body;
+        const { email, password, name, avatarURL, language } = req.body;
         const normalizedEmail = String(email || '').trim().toLowerCase();
 
         if (!normalizedEmail || !password || !name) {
@@ -45,6 +45,7 @@ export const register = async (req, res) => {
                 user.password = password; // will be hashed in pre-save hook
                 user.name = name;
                 user.avatarURL = avatarURL || '';
+                if (language === 'vi' || language === 'ja') user.language = language;
                 user.otp = otp;
                 user.otpExpires = otpExpires;
                 await user.save();
@@ -56,6 +57,7 @@ export const register = async (req, res) => {
                 password,
                 name,
                 avatarURL: avatarURL || '',
+                language: language === 'vi' ? 'vi' : 'ja',
                 needsProfileUpdate: true,
                 role: 'user',
                 isVerified: false,
@@ -381,6 +383,7 @@ export const getMe = async (req, res) => {
                 latestBanDate: user.latestBanDate,
                 needsProfileUpdate: user.needsProfileUpdate,
                 isVerified: user.isVerified,
+                language: user.language || 'ja',
             },
         });
     } catch (error) {

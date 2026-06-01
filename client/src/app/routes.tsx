@@ -1,7 +1,9 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { Landing } from "./screens/Landing";
 import axios from "axios";
+import { toast } from "sonner";
+import { initSocket, disconnectSocket, getSocket } from "./lib/socket";
 
 // ─── Guards ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +74,7 @@ function UserGuard({ children }: { children: React.ReactNode }) {
  */
 function AdminGuard({ children }: { children: React.ReactNode }) {
     const [status, setStatus] = useState<"checking" | "ok" | "no-token" | "not-admin">("checking");
+    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -86,8 +89,24 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
             })
             .then((res) => {
                 const role = res.data?.data?.role;
+                const userId = res.data?.data?._id;
                 if (role === "admin") {
                     setStatus("ok");
+                    if (userId) {
+                        const socket = initSocket(userId);
+                        if (socket) {
+                            socket.off("new_participation_request");
+                            socket.on("new_participation_request", (payload: any) => {
+                                toast.info(`新しい参加申請があります`, {
+                                    description: `${payload.userName} さんが「${payload.eventTitle}」に申請しました。`,
+                                    action: {
+                                        label: "確認",
+                                        onClick: () => navigate("/admin/events"),
+                                    },
+                                });
+                            });
+                        }
+                    }
                 } else {
                     setStatus("not-admin");
                 }
@@ -96,6 +115,17 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
                 const cachedRole = localStorage.getItem("role");
                 setStatus(cachedRole === "admin" ? "ok" : "not-admin");
             });
+            
+        return () => {
+            try {
+                const socket = getSocket();
+                if (socket) {
+                    socket.off("new_participation_request");
+                }
+            } catch (e) {
+                // Ignore if socket not initialized
+            }
+        };
     }, []);
 
     if (status === "checking") return null;

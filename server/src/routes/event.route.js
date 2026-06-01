@@ -1,6 +1,6 @@
 import express from 'express';
 import authMiddleware from '../middlewares/auth.middleware.js';
-import { createEvent, deleteEvent, getEventById, listEvents, updateEvent, getSuggestedEvents, joinEvent,cancelJoinEvent,reportEvent,} from '../controllers/event.controller.js';
+import { createEvent, deleteEvent, getEventById, listEvents, updateEvent, getSuggestedEvents, joinEvent, cancelJoinEvent, reportEvent, getMyParticipationStatus } from '../controllers/event.controller.js';
 import  protect  from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
@@ -13,5 +13,6 @@ router.delete('/:id', authMiddleware, deleteEvent);
 router.post('/:id/join', protect, joinEvent)
 router.post('/:id/cancel', protect, cancelJoinEvent)
 router.post('/:id/report', protect, reportEvent)
+router.get('/:id/participation-status', protect, getMyParticipationStatus)
 
 export default router;

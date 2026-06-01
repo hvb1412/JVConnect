@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { useTranslation } from "../lib/i18n";
 
 export function GuestResetPassword() {
   const location = useLocation();
@@ -16,6 +17,7 @@ export function GuestResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const valid = newPassword.length >= 8 && newPassword === confirmPassword;
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -28,12 +30,12 @@ export function GuestResetPassword() {
       <div className="max-w-xl mx-auto px-6 py-12">
         <Card>
           <CardHeader>
-            <CardTitle>新しいパスワードを設定</CardTitle>
+            <CardTitle>{t("reset_password_title")}</CardTitle>
             <CardDescription>{email} のパスワードを変更します。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">新しいパスワード</Label>
+              <Label htmlFor="new-password">{t("reset_password_title")}</Label>
               <Input
                 id="new-password"
                 type="password"
@@ -42,7 +44,7 @@ export function GuestResetPassword() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">新しいパスワード（確認）</Label>
+              <Label htmlFor="confirm-password">{t("confirm_password")}</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -52,7 +54,7 @@ export function GuestResetPassword() {
             </div>
             <div className="flex gap-2">
               <Button disabled={!valid} onClick={() => navigate("/guest/login")}>
-                変更を保存
+                {t("change_password")}
               </Button>
               <Button asChild variant="outline">
                 <Link to="/guest/login">キャンセル</Link>
