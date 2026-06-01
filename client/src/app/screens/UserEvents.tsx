@@ -163,7 +163,7 @@ export function UserEvents() {
                   </p>
                 </div>
                 <div className="mb-6">
-                  <h3 className="font-semibold mb-1">主催者</h3>
+                  <h3 className="font-semibold mb-1">{t("col_organizer")}</h3>
                   <p className="text-gray-700">{selectedEvent.organizer}</p>
                 </div>
                 <div className="flex gap-2">

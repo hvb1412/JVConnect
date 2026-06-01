@@ -215,10 +215,8 @@ export function UserHome() {
                                                             variant="outline"
                                                             className="mt-2"
                                                         >
-                                                            <Link
-                                                                to={`/user/profile/${user.id}`}
-                                                            >
-                                                                プロフィールを見る
+                                                            <Link to={`/user/profile/${user.id}`}>
+                                                                {t("view_profile")}
                                                             </Link>
                                                         </Button>
                                                     </div>
