@@ -384,6 +384,7 @@ export const translations = {
     // ── Group chat ──
     group_chat: "グループ",
     group_label: "グループ",
+    event_group: "イベント",
     create_group: "グループを作成",
     group_name_label: "グループ名",
     group_name_placeholder: "例: イベントアイアールグループ",
@@ -397,6 +398,7 @@ export const translations = {
     more_pinned: "件のピン止め",
     // ── Pin & Recall ──
     pin_message: "メッセージをピン止め",
+    pinned_messages: "ピン留めされたメッセージ",
     unpin_message: "ピン止めを解除",
     recall_message: "メッセージを取り消す",
     message_recalled_text: "メッセージが取り消されました",
@@ -797,6 +799,7 @@ export const translations = {
     // ── Group chat ──
     group_chat: "Nhóm",
     group_label: "Nhóm",
+    event_group: "Sự kiện",
     create_group: "Tạo nhóm",
     group_name_label: "Tên nhóm",
     group_name_placeholder: "VD: Nhóm sự kiện ABC",
@@ -810,6 +813,7 @@ export const translations = {
     more_pinned: "tin ghim khác",
     // ── Pin & Recall ──
     pin_message: "Ghim tin nhắn",
+    pinned_messages: "Tin nhắn đã ghim",
     unpin_message: "Bỏ ghim",
     recall_message: "Thu hồi tin nhắn",
     message_recalled_text: "Tin nhắn đã được thu hồi",

@@ -235,8 +235,19 @@ export const recallMessage = async (req, res) => {
         const message = await Message.findById(id);
         if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
 
-        // Chỉ người gửi mới được thu hồi
-        if (String(message.sender) !== String(userId)) {
+        const conversation = await Conversation.findById(message.conversation);
+
+        // Cho phép người gửi, group admin, hoặc system admin thu hồi tin nhắn
+        let isSystemAdmin = false;
+        try {
+            const reqUser = await User.findById(userId);
+            isSystemAdmin = reqUser?.role === 'admin' || reqUser?.email === 'admin@jvconnect.com';
+        } catch (_) {}
+
+        const isSender = String(message.sender) === String(userId);
+        const isGroupAdmin = conversation?.type === 'group' && String(conversation.admin) === String(userId);
+
+        if (!isSender && !isGroupAdmin && !isSystemAdmin) {
             return res.status(403).json({ success: false, message: 'You can only recall your own messages' });
         }
 
@@ -247,8 +258,6 @@ export const recallMessage = async (req, res) => {
         message.isRecalled = true;
         message.isPinned = false; // Bỏ ghim nếu đang ghim
         await message.save();
-
-        const conversation = await Conversation.findById(message.conversation);
 
         // Notify other members
         const payload = { messageId: id, conversationId: message.conversation };

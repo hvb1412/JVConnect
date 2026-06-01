@@ -197,6 +197,35 @@ export const declineConversation = async (req, res) => {
     }
 };
 
+// DELETE /conversations/:id — xóa conversation
+export const deleteConversation = async (req, res) => {
+    try {
+        const userId = getAuthUserId(req);
+        const { id } = req.params;
+        if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+        const conversation = await Conversation.findById(id);
+        if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+
+        if (conversation.type !== "direct") {
+            return res.status(400).json({ success: false, message: "Cannot delete group conversation this way" });
+        }
+
+        const isParticipant =
+            String(conversation.user1) === String(userId) ||
+            String(conversation.user2) === String(userId);
+
+        if (!isParticipant) return res.status(403).json({ success: false, message: "Forbidden" });
+
+        await Message.deleteMany({ conversation: id });
+        await Conversation.findByIdAndDelete(id);
+
+        return res.status(200).json({ success: true, message: "Conversation deleted" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // GET /conversations/with/:userId — lấy hoặc tạo direct conversation
 export const getConversationWithUser = async (req, res) => {
     try {

@@ -526,6 +526,10 @@ export const approveParticipation = async (req, res) => {
                 groupConv.members.push(event.organizer);
                 changed = true;
             }
+            if (!groupConv.members.some((m) => String(m) === String(adminId))) {
+                groupConv.members.push(adminId);
+                changed = true;
+            }
             if (changed) {
                 await groupConv.save();
             }

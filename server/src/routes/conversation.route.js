@@ -12,6 +12,7 @@ import {
     addMemberToGroup,
     leaveGroup,
     getPinnedMessages,
+    deleteConversation,
 } from "../controllers/conversation.controller.js";
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.get("/:id/pinned", authMiddleware, getPinnedMessages);
 router.patch("/:id/read", authMiddleware, markMessagesAsRead);
 router.patch("/:id/accept", authMiddleware, acceptConversation);
 router.delete("/:id/decline", authMiddleware, declineConversation);
+router.delete("/:id", authMiddleware, deleteConversation);
 
 // Group chat routes
 router.post("/group", authMiddleware, createGroupChat);

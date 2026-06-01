@@ -347,6 +347,7 @@ export function AdminEvents() {
               <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
               <Link to="/admin/events" className="text-blue-600 font-medium">{t("events_manage")}</Link>
               <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
+              <Link to="/user/chats" className="text-gray-600 hover:text-gray-900">{t("messages_title", { defaultValue: "Tin nhắn" })}</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
