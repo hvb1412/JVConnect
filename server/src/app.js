@@ -3,6 +3,9 @@ import cors from 'cors';
 import routes from './routes/index.route.js'; 
 import errorHandler from './middlewares/error.middleware.js';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 if (!globalThis.crypto) {
   globalThis.crypto = crypto.webcrypto;
@@ -10,6 +13,9 @@ if (!globalThis.crypto) {
 
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
 
 app.use(cors({
     origin: true,
@@ -23,6 +29,18 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use('/api', routes);
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+
+  app.get(/^\/(?!api).*/, (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 app.use((req, res, next) => {
     const error = new Error(`Không tìm thấy - ${req.originalUrl}`);
