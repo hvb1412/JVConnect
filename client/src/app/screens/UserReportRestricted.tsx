@@ -20,7 +20,7 @@ async function fetchBanInfo(): Promise<BanInfo | null> {
             ? import.meta.env.VITE_API_URL.startsWith("http")
                 ? import.meta.env.VITE_API_URL
                 : `https://${import.meta.env.VITE_API_URL}`
-            : "http://localhost:5000";
+            : "http://localhost:3000";
         const res = await axios.get(`${apiBase}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
         });
