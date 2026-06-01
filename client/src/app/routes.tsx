@@ -34,7 +34,7 @@ function UserGuard({ children }: { children: React.ReactNode }) {
         }
 
         axios
-            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : "http://localhost:3000"}/api/auth/me`, {
+            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : ""}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => {
@@ -84,7 +84,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
         }
 
         axios
-            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : "http://localhost:3000"}/api/auth/me`, {
+            .get(`${import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL.startsWith("http") ? import.meta.env.VITE_API_URL : `https://${import.meta.env.VITE_API_URL}`) : ""}/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((res) => {

@@ -6,7 +6,7 @@ import { initSocket } from './socket.js';
 import app from './app.js'; 
 import connectDB from './configs/db.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Create HTTP server from Express app
 const httpServer = createServer(app);
