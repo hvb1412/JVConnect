@@ -7,7 +7,7 @@
     "postinstall": "npm install --prefix server && npm install --prefix client",
     "install-all": "npm install --prefix server && npm install --prefix client",
     "build-client": "npm run build --prefix client",
-    "start": "concurrently \"npm start --prefix server\" \"npm start --prefix client\""
+    "start": "concurrently \"npm start --prefix client\" \"npm start --prefix server\""
   },
   "repository": {
     "type": "git",
