@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import {
     Card,
     CardContent,
@@ -37,6 +38,7 @@ import { toast } from "sonner";
 
 export function UserMyPage() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const userId = localStorage.getItem("userId") || "";
     const [name, setName] = useState("山田太郎");
     const [avatar, setAvatar] = useState("");
@@ -104,11 +106,10 @@ export function UserMyPage() {
 
             setEditing(false);
             setNeedsProfileUpdate(false);
-
-            alert("プロフィールを更新しました");
+            toast.success(t("profile_updated"));
         } catch (error) {
             console.error(error);
-            alert("更新に失敗しました");
+            toast.error(t("profile_save_failed"));
         } finally {
             setSaving(false);
         }
@@ -122,8 +123,8 @@ export function UserMyPage() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) {
-            setAvatarError("ファイルサイズは5MB以内にしてください。");
+            if (file.size > 5 * 1024 * 1024) {
+            setAvatarError(t("avatar_size_limit"));
             return;
         }
 
@@ -142,10 +143,10 @@ export function UserMyPage() {
             const result = await uploadImageByUrl(dataUrl);
             await updateUserProfile({ avatarURL: result.secure_url });
             setAvatar(result.secure_url);
-            toast.success("プロフィール画像を更新しました。");
+            toast.success(t("avatar_updated"));
         } catch (error: any) {
-            setAvatarError(error?.message || "アップロードに失敗しました。");
-            toast.error("アップロードに失敗しました。");
+            setAvatarError(error?.message || t("avatar_upload_failed"));
+            toast.error(t("avatar_upload_failed"));
         } finally {
             setIsUploading(false);
             setSaving(false);
@@ -154,23 +155,23 @@ export function UserMyPage() {
 
     const handleRequestOtp = async () => {
         if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
-            toast.error("入力を確認してください。");
+            toast.error(t("check_input_error"));
             return;
         }
 
         if (newPassword.length < 8) {
-            toast.error("新しいパスワードは8文字以上である必要があります。");
+            toast.error(t("new_password_length_error"));
             return;
         }
 
         setIsRequestingOtp(true);
         try {
             await requestChangePasswordOtp(currentPassword);
-            toast.success("確認コードをメールに送信しました。");
+            toast.success(t("otp_sent_success"));
             setPasswordDialogOpen(false);
             setOtpDialogOpen(true);
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || error?.message || "エラーが発生しました。");
+            toast.error(error?.response?.data?.message || error?.message || t("error_occurred"));
         } finally {
             setIsRequestingOtp(false);
         }
@@ -178,21 +179,21 @@ export function UserMyPage() {
 
     const handleVerifyAndChangePassword = async () => {
         if (!otp) {
-            toast.error("確認コードを入力してください。");
+            toast.error(t("otp_enter_required"));
             return;
         }
 
         setIsChangingPassword(true);
         try {
             await changeUserPassword(currentPassword, newPassword, otp);
-            toast.success("パスワードを変更しました。");
+            toast.success(t("password_change_success"));
             setOtpDialogOpen(false);
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
             setOtp("");
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || error?.message || "パスワードの変更に失敗しました。");
+            toast.error(error?.response?.data?.message || error?.message || t("password_change_failed"));
         } finally {
             setIsChangingPassword(false);
         }
@@ -206,10 +207,10 @@ export function UserMyPage() {
             logout();
             localStorage.removeItem("userId");
             localStorage.removeItem("role");
-            toast.success("アカウントを削除しました。");
+            toast.success(t("account_deleted"));
             navigate("/guest/login");
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || error?.message || "アカウント削除に失敗しました。");
+            toast.error(error?.response?.data?.message || error?.message || t("account_delete_failed"));
         } finally {
             setIsDeletingAccount(false);
         }
@@ -223,36 +224,11 @@ export function UserMyPage() {
                     <div className="flex items-center gap-8">
                         <Logo />
                         <nav className="hidden md:flex items-center gap-6">
-                            <Link
-                                to="/user/home"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                ホーム
-                            </Link>
-                            <Link
-                                to="/user/search"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                検索
-                            </Link>
-                            <Link
-                                to="/user/friends"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                フレンド
-                            </Link>
-                            <Link
-                                to="/user/events"
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                イベント
-                            </Link>
-                            <Link
-                                to="/user/mypage"
-                                className="text-blue-600 font-medium"
-                            >
-                                マイページ
-                            </Link>
+                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                            <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                            <Link to="/user/mypage" className="text-blue-600 font-medium">{t("nav_mypage")}</Link>
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
@@ -264,8 +240,8 @@ export function UserMyPage() {
             {/* Main Content */}
             <div className="max-w-5xl mx-auto px-6 py-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">マイページ</h1>
-                    <p className="text-gray-600">プロフィール情報を管理する</p>
+                    <h1 className="text-3xl font-bold mb-2">{t("mypage_title")}</h1>
+                    <p className="text-gray-600">{t("manage_profile_info")}</p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -308,25 +284,19 @@ export function UserMyPage() {
 
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                            メンバー歴
-                                        </span>
+                                        <span className="text-gray-600">{t("member_since_label")}</span>
                                         <span className="font-medium">
                                             {memberSince}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                            つながり
-                                        </span>
+                                        <span className="text-gray-600">{t("connections_label")}</span>
                                         <span className="font-medium">
                                             {connections}人
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">
-                                            参加イベント
-                                        </span>
+                                        <span className="text-gray-600">{t("events_attended_label")}</span>
                                         <span className="font-medium">
                                             {eventsAttended}回
                                         </span>
@@ -340,50 +310,48 @@ export function UserMyPage() {
                     <div className="lg:col-span-2 space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>プロフィール編集</CardTitle>
-                                <CardDescription>
-                                    地域・業界・自己紹介を編集
-                                </CardDescription>
+                                <CardTitle>{t("edit_profile")}</CardTitle>
+                                <CardDescription>{t("edit_profile_desc")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">名前</Label>
+                                    <Label htmlFor="name">{t("name")}</Label>
                                     <Input
                                         id="name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        placeholder="名前を入力"
+                                        placeholder={t("placeholder_name")}
                                         disabled={!editing}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="area">地域</Label>
+                                    <Label htmlFor="area">{t("label_area")}</Label>
                                     <Input
                                         id="area"
                                         value={area}
                                         onChange={(e) => setArea(e.target.value)}
-                                        placeholder="地域を入力"
+                                        placeholder={t("placeholder_area")}
                                         disabled={!editing}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="industry">業界</Label>
+                                    <Label htmlFor="industry">{t("label_industry")}</Label>
                                     <Input
                                         id="industry"
                                         value={industry}
                                         onChange={(e) => setIndustry(e.target.value)}
-                                        placeholder="業界を入力"
+                                        placeholder={t("placeholder_industry")}
                                         disabled={!editing}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="bio">自己紹介</Label>
+                                    <Label htmlFor="bio">{t("label_intro")}</Label>
                                     <Textarea
                                         id="bio"
                                         rows={4}
                                         value={bio}
                                         onChange={(e) => setBio(e.target.value)}
-                                        placeholder="あなたについて簡単に紹介してください..."
+                                        placeholder={t("placeholder_bio")}
                                         disabled={!editing}
                                     />
                                 </div>
@@ -395,14 +363,14 @@ export function UserMyPage() {
                                         disabled={editing}
                                     >
                                         <Edit className="mr-2 h-4 w-4" />
-                                        編集
+                                        {t("edit")}
                                     </Button>
                                     <Button
                                         className="flex-1"
                                         onClick={handleSaveProfile}
                                         disabled={!editing || saving || isUploading}
                                     >
-                                        {saving ? "保存中..." : "保存"}
+                                        {saving ? t("saving") : t("save")}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -410,20 +378,14 @@ export function UserMyPage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>設定</CardTitle>
-                                <CardDescription>
-                                    パスワードとアカウントの管理
-                                </CardDescription>
+                                <CardTitle>{t("settings")}</CardTitle>
+                                <CardDescription>{t("password_account_management")}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-4">
                                     <div>
-                                        <p className="font-medium">
-                                            パスワード変更
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            ログインパスワードを更新します
-                                        </p>
+                                        <p className="font-medium">{t("change_password")}</p>
+                                        <p className="text-sm text-gray-600">{t("change_password_desc")}</p>
                                     </div>
                                     <Button
                                         variant="outline"
@@ -431,17 +393,13 @@ export function UserMyPage() {
                                             setPasswordDialogOpen(true)
                                         }
                                     >
-                                        変更
+                                        {t("change")}
                                     </Button>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-red-200 bg-red-50/50 p-4">
                                     <div>
-                                        <p className="font-medium text-red-800">
-                                            アカウント削除
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            すべてのデータが削除されます
-                                        </p>
+                                        <p className="font-medium text-red-800">{t("delete_account")}</p>
+                                        <p className="text-sm text-gray-600">{t("delete_account_warning")}</p>
                                     </div>
                                     <Button
                                         variant="destructive"
@@ -449,17 +407,13 @@ export function UserMyPage() {
                                             setDeleteDialogOpen(true)
                                         }
                                     >
-                                        削除
+                                        {t("delete")}
                                     </Button>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border p-4">
                                     <div>
-                                        <p className="font-medium">
-                                            ログアウト
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            現在のアカウントからログアウトします
-                                        </p>
+                                        <p className="font-medium">{t("logout")}</p>
+                                        <p className="text-sm text-gray-600">{t("logout_description")}</p>
                                     </div>
                                     <Button
                                         variant="outline"
@@ -469,7 +423,7 @@ export function UserMyPage() {
                                         }}
                                     >
                                         <LogOut className="mr-2 h-4 w-4" />
-                                        ログアウト
+                                        {t("logout")}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -484,7 +438,7 @@ export function UserMyPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>パスワード変更</DialogTitle>
+                        <DialogTitle>{t("change_password")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
                         <div className="space-y-2">
@@ -522,22 +476,14 @@ export function UserMyPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
-                            disabled={
-                                !currentPassword ||
-                                !newPassword ||
-                                newPassword !== confirmPassword ||
-                                isRequestingOtp
-                            }
-                            onClick={handleRequestOtp}
-                        >
-                            {isRequestingOtp ? "処理中..." : "変更する"}
-                        </Button>
+                            <Button disabled={!currentPassword || !newPassword || newPassword !== confirmPassword || isRequestingOtp} onClick={handleRequestOtp}>
+                                {isRequestingOtp ? t("processing") : t("change_action")}
+                            </Button>
                         <Button
                             variant="outline"
                             onClick={() => setPasswordDialogOpen(false)}
                         >
-                            キャンセル
+                            {t("cancel")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -549,35 +495,28 @@ export function UserMyPage() {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>確認コード入力</DialogTitle>
+                        <DialogTitle>{t("enter_otp_code")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-3 py-2">
-                        <p className="text-sm text-gray-600">
-                            登録されたメールアドレスに6桁の確認コードを送信しました。
-                        </p>
+                        <p className="text-sm text-gray-600">{t("otp_sent_notice")}</p>
                         <div className="space-y-2">
                             <Label htmlFor="otp-code">確認コード</Label>
                             <Input
                                 id="otp-code"
                                 type="text"
-                                placeholder="123456"
+                                placeholder={t("otp_placeholder")}
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button
-                            disabled={!otp || isChangingPassword}
-                            onClick={handleVerifyAndChangePassword}
-                        >
-                            {isChangingPassword ? "変更中..." : "確認して変更"}
-                        </Button>
+                        <Button disabled={!otp || isChangingPassword} onClick={handleVerifyAndChangePassword}>{isChangingPassword ? t("changing") : t("verify_and_change")}</Button>
                         <Button
                             variant="outline"
                             onClick={() => setOtpDialogOpen(false)}
                         >
-                            キャンセル
+                            {t("cancel")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -586,24 +525,22 @@ export function UserMyPage() {
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>アカウントを削除しますか？</DialogTitle>
+                        <DialogTitle>{t("confirm_delete_account")}</DialogTitle>
                     </DialogHeader>
-                    <p className="text-sm text-gray-600">
-                        この操作は取り消せません。プロフィール、フレンド、チャット履歴などがすべて削除されます。
-                    </p>
+                    <p className="text-sm text-gray-600">{t("confirm_delete_account_desc")}</p>
                     <DialogFooter>
                         <Button
                             variant="destructive"
                             disabled={isDeletingAccount}
                             onClick={handleDeleteAccount}
                         >
-                            {isDeletingAccount ? "削除中..." : "削除する"}
+                            {isDeletingAccount ? t("deleting") : t("delete_confirm")}
                         </Button>
                         <Button
                             variant="outline"
                             onClick={() => setDeleteDialogOpen(false)}
                         >
-                            キャンセル
+                            {t("cancel")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

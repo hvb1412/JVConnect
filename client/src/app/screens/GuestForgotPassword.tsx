@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Mail, Lock, ShieldCheck, KeyRound } from "lucide-react";
 import { forgotPassword, verifyForgotPasswordOtp, resetPassword } from "../lib/authApi";
+import { useTranslation } from "../lib/i18n";
 
 export function GuestForgotPassword() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export function GuestForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   
   const [resendTimer, setResendTimer] = useState(0);
+  const { t } = useTranslation();
 
   useEffect(() => {
     let interval: any;
@@ -37,7 +39,7 @@ export function GuestForgotPassword() {
 
   const handleRequestOtp = async () => {
     if (!email.trim()) {
-      setError("メールアドレスを入力してください。");
+      setError(t("email") + " is required");
       return;
     }
     try {
@@ -55,7 +57,7 @@ export function GuestForgotPassword() {
 
   const handleVerifyOtp = async () => {
     if (!otp.trim() || otp.length !== 6) {
-      setError("正しいOTPを入力してください。");
+      setError(t("otp_placeholder") + " is invalid");
       return;
     }
     try {
@@ -73,14 +75,14 @@ export function GuestForgotPassword() {
 
   const handleResetPassword = async () => {
     if (!newPassword || newPassword !== confirmPassword) {
-      setError("パスワードが一致しません。");
+      setError(t("confirm_password") + " does not match");
       return;
     }
     try {
       setIsLoading(true);
       setError("");
       await resetPassword(resetToken, newPassword);
-      setSuccessMsg("パスワードが変更されました。ログインしてください。");
+      setSuccessMsg(t("change_password") + "。ログインしてください。");
       setTimeout(() => navigate("/guest/login"), 2000);
     } catch (err: any) {
       setError(err.message || "パスワードの変更に失敗しました。");
@@ -103,14 +105,14 @@ export function GuestForgotPassword() {
               <KeyRound className="w-6 h-6" />
             </div>
             <CardTitle className="text-2xl">
-              {step === 1 && "パスワードを忘れた場合"}
-              {step === 2 && "コードの確認"}
-              {step === 3 && "新しいパスワードの設定"}
+              {step === 1 && t("forgot_password")}
+              {step === 2 && t("verify_title")}
+              {step === 3 && t("reset_password_title")}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "登録したメールアドレスを入力してください。パスワードリセット用のコードを送信します。"}
-              {step === 2 && "メールアドレスに送信された6桁の確認コードを入力してください。"}
-              {step === 3 && "新しいパスワードを入力してください。"}
+              {step === 1 && t("register_description")}
+              {step === 2 && t("verify_description")}
+              {step === 3 && t("reset_password_description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -143,7 +145,7 @@ export function GuestForgotPassword() {
                 {error && <p className="text-sm text-red-600">{error}</p>}
 
                 <Button className="w-full" size="lg" onClick={handleRequestOtp} disabled={isLoading}>
-                  {isLoading ? "送信中..." : "コードを送信"}
+                  {isLoading ? t("logging_in") : t("send_code")}
                 </Button>
                 <div className="text-center pt-2">
                   <Link to="/guest/login" className="text-sm text-gray-500 hover:text-gray-700 underline">
@@ -182,7 +184,7 @@ export function GuestForgotPassword() {
                 {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
                 <Button className="w-full h-12 text-lg" onClick={handleVerifyOtp} disabled={isLoading || otp.length !== 6}>
-                  {isLoading ? "認証中..." : "コードを認証"}
+                  {isLoading ? t("logging_in") : t("code_verify")}
                 </Button>
 
                 <div className="text-center mt-4">
@@ -252,7 +254,7 @@ export function GuestForgotPassword() {
                 {error && <p className="text-sm text-red-600">{error}</p>}
 
                 <Button className="w-full" size="lg" onClick={handleResetPassword} disabled={isLoading}>
-                  {isLoading ? "変更中..." : "パスワードを変更する"}
+                  {isLoading ? t("logging_in") : t("change_password")}
                 </Button>
               </div>
             )}

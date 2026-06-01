@@ -7,11 +7,13 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { useTranslation } from "../lib/i18n";
 import { Search, MapPin, Briefcase, Loader2, UserPlus, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { searchUsers, sendFriendRequest, getFriendStatus, type UiUser } from "../lib/userApi";
 
 export function UserSearch() {
+    const { t } = useTranslation();
     const [keyword, setKeyword] = useState("");
     const [location, setLocation] = useState("");
     const [industry, setIndustry] = useState("");
@@ -108,23 +110,13 @@ export function UserSearch() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-6">
-                            <Link to="/user/home" className="text-gray-600 hover:text-gray-900">
-                                ホーム
-                            </Link>
-                            <Link to="/user/search" className="text-blue-600 font-medium">
-                                検索
-                            </Link>
-                            <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">
-                                フレンド
-                            </Link>
-                            <Link to="/user/events" className="text-gray-600 hover:text-gray-900">
-                                イベント
-                            </Link>
-                            <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">
-                                マイページ
-                            </Link>
-                        </nav>
+                                <nav className="hidden md:flex items-center gap-6">
+                                    <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                                    <Link to="/user/search" className="text-blue-600 font-medium">{t("nav_search")}</Link>
+                                    <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                                    <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                                    <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
+                                </nav>
                     </div>
                     <div className="flex items-center gap-4">
                         <HeaderActions />
@@ -135,41 +127,41 @@ export function UserSearch() {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">ユーザー検索・マッチング</h1>
-                    <p className="text-gray-600">あなたにぴったりのビジネスパートナーを見つけましょう</p>
+                    <h1 className="text-3xl font-bold mb-2">{t("user_search_title")}</h1>
+                    <p className="text-gray-600">{t("user_search_subtitle")}</p>
                 </div>
 
                 {/* Search Filters */}
                 <Card className="mb-8">
                     <CardHeader>
-                        <CardTitle>検索フィルター</CardTitle>
-                        <CardDescription>条件を指定して検索してください</CardDescription>
+                        <CardTitle>{t("search_filters")}</CardTitle>
+                        <CardDescription>{t("search_filters_desc")}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid md:grid-cols-3 gap-4 mb-4">
                             <div className="space-y-2">
-                                <Label htmlFor="keyword">キーワード</Label>
+                                <Label htmlFor="keyword">{t("keyword")}</Label>
                                 <Input
                                     id="keyword"
-                                    placeholder="職種、スキル、名前など"
+                                    placeholder={t("placeholder_keyword")}
                                     value={keyword}
                                     onChange={(e) => setKeyword(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="location">場所</Label>
+                                <Label htmlFor="location">{t("label_location")}</Label>
                                 <Input
                                     id="location"
-                                    placeholder="例：東京、大阪..."
+                                    placeholder={t("placeholder_location")}
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="industry">業界</Label>
+                                <Label htmlFor="industry">{t("label_industry")}</Label>
                                 <Input
                                     id="industry"
-                                    placeholder="例：テクノロジー、金融..."
+                                    placeholder={t("placeholder_industry")}
                                     value={industry}
                                     onChange={(e) => setIndustry(e.target.value)}
                                 />
@@ -177,7 +169,7 @@ export function UserSearch() {
                         </div>
                         <Button className="w-full md:w-auto" onClick={runSearch} disabled={isLoading}>
                             <Search className="mr-2 h-4 w-4" />
-                            {isLoading ? "検索中..." : "検索"}
+                            {isLoading ? t("searching") : t("search")}
                         </Button>
                     </CardContent>
                 </Card>

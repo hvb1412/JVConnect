@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
+import { useTranslation } from "../lib/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Calendar, MapPin, Users, CheckCircle2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { isEventContentHidden } from "../lib/contentModerationStore";
 import { getAllEvents, UiEvent } from "../lib/eventApi";
 
 export function UserEvents() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<UiEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
@@ -51,7 +53,7 @@ export function UserEvents() {
       return (
         <Card>
           <CardContent className="p-6 text-sm text-gray-600 text-center py-12">
-            読み込み中...
+            {t("loading")}
           </CardContent>
         </Card>
       );
@@ -61,7 +63,7 @@ export function UserEvents() {
       return (
         <Card>
           <CardContent className="p-6 text-sm text-gray-600 text-center py-12">
-            表示可能なイベントはありません。
+            {t("no_events_available")}
           </CardContent>
         </Card>
       );
@@ -95,7 +97,7 @@ export function UserEvents() {
                     {event.isJoined && (
                       <Badge className="bg-green-600 hover:bg-green-600">
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                        参加済み
+                        {t("joined")}
                       </Badge>
                     )}
                   </div>
@@ -132,13 +134,13 @@ export function UserEvents() {
                     {selectedEvent.isJoined && (
                       <Badge className="bg-green-600 hover:bg-green-600">
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                        参加済み
+                        {t("joined")}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
                     <Users className="h-4 w-4" />
-                    <span>{selectedEvent.participants}人参加</span>
+                    <span>{selectedEvent.participants} {t("participants")}</span>
                   </div>
                 </div>
                 <CardTitle className="text-2xl">{selectedEvent.title}</CardTitle>
@@ -155,9 +157,9 @@ export function UserEvents() {
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
-                  <h3 className="font-semibold mb-2">詳細</h3>
+                  <h3 className="font-semibold mb-2">{t("details")}</h3>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line max-h-40 overflow-y-auto custom-scrollbar pr-2">
-                    {selectedEvent.description || "説明がありません。"}
+                    {selectedEvent.description || t("no_description")}
                   </p>
                 </div>
                 <div className="mb-6">
@@ -166,17 +168,17 @@ export function UserEvents() {
                 </div>
                 <div className="flex gap-2">
                   <Button asChild className="flex-1">
-                    <Link to={`/user/events/${selectedEvent.id}`}>詳細を見る</Link>
+                    <Link to={`/user/events/${selectedEvent.id}`}>{t("view_details")}</Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link to="/user/events/joined">参加イベント</Link>
+                    <Link to="/user/events/joined">{t("joined_events")}</Link>
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <Card className="h-full min-h-[400px] flex items-center justify-center text-gray-500">
-              イベントを選択してください
+              {t("select_event_prompt")}
             </Card>
           )}
         </div>
@@ -192,21 +194,11 @@ export function UserEvents() {
           <div className="flex items-center gap-8">
             <Logo />
             <nav className="hidden md:flex items-center gap-6">
-              <Link to="/user/home" className="text-gray-600 hover:text-gray-900">
-                ホーム
-              </Link>
-              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">
-                検索
-              </Link>
-              <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">
-                フレンド
-              </Link>
-              <Link to="/user/events" className="text-blue-600 font-medium">
-                イベント
-              </Link>
-              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">
-                マイページ
-              </Link>
+              <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+              <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+              <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+              <Link to="/user/events" className="text-blue-600 font-medium">{t("nav_events")}</Link>
+              <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
@@ -218,15 +210,15 @@ export function UserEvents() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">イベント</h1>
-          <p className="text-gray-600">参加してネットワークを広げましょう</p>
+          <h1 className="text-3xl font-bold mb-2">{t("events_title")}</h1>
+          <p className="text-gray-600">{t("events_subtitle")}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList>
-            <TabsTrigger value="all">すべて</TabsTrigger>
-            <TabsTrigger value="upcoming">今後のイベント</TabsTrigger>
-            <TabsTrigger value="past">過去のイベント</TabsTrigger>
+            <TabsTrigger value="all">{t("tab_all")}</TabsTrigger>
+            <TabsTrigger value="upcoming">{t("tab_upcoming")}</TabsTrigger>
+            <TabsTrigger value="past">{t("tab_past")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
@@ -243,7 +235,7 @@ export function UserEvents() {
         </Tabs>
 
         <Button asChild variant="outline" className="mt-6">
-          <Link to="/user/home">ホームに戻る</Link>
+          <Link to="/user/home">{t("back_to_home")}</Link>
         </Button>
       </div>
     </div>
