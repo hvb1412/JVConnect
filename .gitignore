@@ -3,7 +3,6 @@ node_modules/
 
 # BẢO MẬT TỐI ĐA: Bỏ qua file biến môi trường gốc của toàn dự án
 .env
-.env.*
 
 # Bỏ qua các file log khi chạy npm install ở root
 logs
