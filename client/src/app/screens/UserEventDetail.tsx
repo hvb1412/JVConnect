@@ -26,7 +26,7 @@ export function UserEventDetail() {
   const navigate = useNavigate();
 
   const [reportOpen, setReportOpen] = useState(false);
-  const [reason, setReason] = useState("不適切な内容");
+  const [reason, setReason] = useState(() => t("report_type_inappropriate"));
   const [detail, setDetail] = useState("");
 
   const [event, setEvent] = useState<any>(null);
@@ -123,7 +123,7 @@ export function UserEventDetail() {
   if (!event) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Event not found</p>
+        <p className="text-gray-500">{t("event_not_found")}</p>
       </div>
     );
   }
@@ -249,7 +249,7 @@ export function UserEventDetail() {
               <CardTitle>{event.title}</CardTitle>
               <div className="text-sm text-gray-600 flex items-center gap-1 flex-shrink-0">
                 <Users className="h-4 w-4" />
-                {event.participants} / {event.maxParticipants} 人
+                {event.participants} / {event.maxParticipants} {t("participants")}
               </div>
             </div>
           </CardHeader>
@@ -273,7 +273,7 @@ export function UserEventDetail() {
             )}
 
             {isFull && participationStatus === "none" && (
-              <p className="text-sm text-red-600 font-medium">定員に達しました</p>
+              <p className="text-sm text-red-600 font-medium">{t("event_full")}</p>
             )}
 
             {/* ── Participation status banner ── */}
@@ -331,7 +331,7 @@ export function UserEventDetail() {
                 onClick={() => setReportOpen(true)}
               >
                 <Flag className="h-4 w-4 mr-2" />
-                通報
+                {t("report")}
               </Button>
 
               <Button asChild variant="ghost">
@@ -346,32 +346,32 @@ export function UserEventDetail() {
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>イベント通報</DialogTitle>
+            <DialogTitle>{t("report_event_title")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium mb-2">理由</p>
+              <p className="text-sm font-medium mb-2">{t("report_type_label")}</p>
               <select
                 aria-label="Report reason"
                 className="w-full border rounded-md h-10 px-3"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               >
-                <option>不適切な内容</option>
-                <option>虚偽のイベント情報</option>
-                <option>スパム</option>
-                <option>危険な内容</option>
-                <option>その他</option>
+                <option value={t("report_type_inappropriate")}>{t("report_type_inappropriate")}</option>
+                <option value={t("report_type_fake")}>{t("report_type_fake")}</option>
+                <option value={t("report_type_spam")}>{t("report_type_spam")}</option>
+                <option value={t("report_type_violence")}>{t("report_type_violence")}</option>
+                <option value={t("report_type_other")}>{t("report_type_other")}</option>
               </select>
             </div>
 
             <div>
-              <p className="text-sm font-medium mb-2">詳細</p>
+              <p className="text-sm font-medium mb-2">{t("report_detail_label")}</p>
               <Textarea
                 value={detail}
                 onChange={(e) => setDetail(e.target.value)}
-                placeholder="詳細を入力してください"
+                placeholder={t("report_detail_placeholder")}
               />
             </div>
           </div>
@@ -383,17 +383,17 @@ export function UserEventDetail() {
                   await reportEvent(event._id, `${reason}\n${detail}`);
                   setReportOpen(false);
                   setDetail("");
-                  alert("イベントを通報しました。");
+                  alert(t("report_received"));
                 } catch (error) {
                   console.error(error);
-                  alert("エラーが発生しました。もう一度お試しください。");
+                  alert(t("report_send_failed"));
                 }
               }}
             >
-              送信
+              {t("send")}
             </Button>
             <Button variant="outline" onClick={() => setReportOpen(false)}>
-              キャンセル
+              {t("cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

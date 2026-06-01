@@ -93,9 +93,9 @@ export function UserSearch() {
     const getButtonLabel = (userId: string) => {
         const state = requestStates[userId];
         if (state === "sending") return null; // shows spinner
-        if (state === "sent") return "申請済み";
-        if (state === "error") return "再試行";
-        return "フレンド追加";
+        if (state === "sent") return t("friend_requested");
+        if (state === "error") return t("retry");
+        return t("add_friend");
     };
 
     const getButtonVariant = (userId: string): "outline" | "default" | "destructive" => {
@@ -218,7 +218,7 @@ export function UserSearch() {
                                                     <div className="flex gap-2 items-center">
                                                         <Button asChild size="sm">
                                                             <Link to={`/user/profile/${user.id}`}>
-                                                                プロフィールを見る
+                                                                {t("view_profile")}
                                                             </Link>
                                                         </Button>
 
@@ -261,7 +261,7 @@ export function UserSearch() {
                                                     </div>
                                                     {requestStates[user.id] === "error" && (
                                                         <p className="text-xs text-red-600 mt-1">
-                                                            申請に失敗しました。再試行してください。
+                                                            {t("friend_request_failed")}
                                                         </p>
                                                     )}
                                                 </div>
@@ -282,20 +282,20 @@ export function UserSearch() {
             <Dialog open={friendModalOpen} onOpenChange={setFriendModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>フレンド申請を送信しますか？</DialogTitle>
+                        <DialogTitle>{t("confirm_send_friend_request")}</DialogTitle>
                     </DialogHeader>
                     {selectedUser && (
                         <p className="text-sm text-gray-600">
-                            <span className="font-medium">{selectedUser.name}</span> さんにフレンド申請を送ります。
+                            <span className="font-medium">{selectedUser.name}</span> {t("will_send_friend_request")}
                         </p>
                     )}
                     <DialogFooter>
                         <Button onClick={handleSendRequest}>
                             <UserPlus className="mr-2 h-4 w-4" />
-                            送信
+                            {t("send")}
                         </Button>
                         <Button variant="outline" onClick={() => setFriendModalOpen(false)}>
-                            キャンセル
+                            {t("cancel")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
