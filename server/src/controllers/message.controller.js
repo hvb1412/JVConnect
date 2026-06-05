@@ -126,7 +126,7 @@ export const sendMessage = async (req, res) => {
         });
 
         const populatedMessage = await Message.findById(message._id)
-            .populate('sender', 'name email avatarURL')
+            .populate('sender', 'name email avatarURL role')
             .populate('conversation', 'user1 user2 status initiator type members');
 
         // Update conversation updatedAt
@@ -204,7 +204,7 @@ export const pinMessage = async (req, res) => {
         await message.save();
 
         const populated = await Message.findById(id)
-            .populate('sender', 'name email avatarURL')
+            .populate('sender', 'name email avatarURL role')
             .populate('pinnedBy', 'name email avatarURL');
 
         // Notify other members
