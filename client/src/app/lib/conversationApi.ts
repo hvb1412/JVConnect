@@ -5,6 +5,7 @@ export type BackendUser = {
     name: string;
     email?: string;
     avatarURL?: string;
+    role?: "admin" | "user";
 };
 
 export type BackendMessage = {
@@ -87,6 +88,7 @@ export type UiConversation = {
 export type UiConversationMessage = {
     id: string;
     sender: "me" | "other";
+    senderId?: string;
     senderName?: string;
     senderAvatar?: string;
     text: string;
@@ -96,6 +98,7 @@ export type UiConversationMessage = {
     isPinned?: boolean;
     pinnedBy?: BackendUser | null;
     pinnedAt?: string | null;
+    senderRole?: "admin" | "user";
 };
 
 import { API_ENDPOINT } from "./config";
@@ -170,6 +173,7 @@ export const mapMessages = (
     return messages.map((message) => ({
         id: message._id,
         sender: message.sender._id === currentUserId ? "me" : "other",
+        senderId: message.sender._id,
         senderName: message.sender.name,
         senderAvatar: getAvatar(message.sender),
         text: message.content,
@@ -179,6 +183,7 @@ export const mapMessages = (
         isPinned: message.isPinned,
         pinnedBy: message.pinnedBy ?? null,
         pinnedAt: message.pinnedAt ?? null,
+        senderRole: message.sender.role,
     }));
 };
 

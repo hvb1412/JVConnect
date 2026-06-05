@@ -231,7 +231,12 @@ export function UserChat() {
 
             const partnerAvatar = isGroup ? "" : (chatUser?.avatar || "");
             const incomingMessage = mapMessages([payload.message], currentUserId, partnerAvatar)[0];
-            setMessages((prev) => [...prev, incomingMessage]);
+            setMessages((prev) => {
+                if (prev.some((m) => m.id === incomingMessage.id)) {
+                    return prev;
+                }
+                return [...prev, incomingMessage];
+            });
 
             if (!isPending) {
                 markConversationAsRead(incomingConvId);
@@ -317,7 +322,12 @@ export function UserChat() {
                 currentUserId,
                 chatUser?.avatar || "",
             );
-            setMessages((prev) => [...prev, payload]);
+            setMessages((prev) => {
+                if (prev.some((m) => m.id === payload.id)) {
+                    return prev;
+                }
+                return [...prev, payload];
+            });
             setMessage("");
         } catch (error: any) {
             console.error("Failed to send message", error);
@@ -562,7 +572,13 @@ export function UserChat() {
                         <div className="border-b border-gray-100 bg-blue-50 px-4 py-3">
                             <div className="flex flex-wrap gap-2">
                                 {groupMembers.map((member) => (
-                                    <div key={member._id} className="flex items-center gap-1.5 bg-white rounded-full px-2 py-1 text-xs border border-blue-100">
+                                    <div 
+                                        key={member._id} 
+                                        className={`flex items-center gap-1.5 bg-white rounded-full px-2 py-1 text-xs border border-blue-100 ${member.role === 'admin' ? '' : 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors'}`}
+                                        onClick={() => {
+                                            if (member.role !== 'admin') navigate(`/user/profile/${member._id}`);
+                                        }}
+                                    >
                                         <Avatar className="h-5 w-5">
                                             <AvatarImage src={member.avatarURL} />
                                             <AvatarFallback>{member.name[0]}</AvatarFallback>
@@ -668,7 +684,12 @@ export function UserChat() {
                                     >
                                         <div className={`flex gap-2 max-w-[70%] ${msg.sender === "me" ? "flex-row-reverse" : ""}`}>
                                             {msg.sender === "other" && (
-                                                <Avatar className="h-8 w-8 flex-shrink-0">
+                                                <Avatar 
+                                                    className={`h-8 w-8 flex-shrink-0 ${msg.senderRole === 'admin' ? '' : 'cursor-pointer hover:opacity-80 transition-opacity'}`}
+                                                    onClick={() => {
+                                                        if (msg.senderId && msg.senderRole !== 'admin') navigate(`/user/profile/${msg.senderId}`);
+                                                    }}
+                                                >
                                                     <AvatarImage src={msg.senderAvatar || chatUser?.avatar || ""} />
                                                     <AvatarFallback>{msg.senderName?.[0] || "?"}</AvatarFallback>
                                                 </Avatar>
@@ -765,7 +786,12 @@ export function UserChat() {
                         {pinnedMessages.map((msg) => (
                             <div key={msg._id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative group">
                                 <div className="flex items-start gap-2 mb-2">
-                                    <Avatar className="h-6 w-6">
+                                    <Avatar 
+                                        className={`h-6 w-6 ${msg.sender?.role === 'admin' ? '' : 'cursor-pointer hover:opacity-80 transition-opacity'}`}
+                                        onClick={() => {
+                                            if (msg.sender?._id && msg.sender?.role !== 'admin') navigate(`/user/profile/${msg.sender._id}`);
+                                        }}
+                                    >
                                         <AvatarImage src={msg.sender?.avatarURL || ""} />
                                         <AvatarFallback>{msg.sender?.name?.[0] || "?"}</AvatarFallback>
                                     </Avatar>

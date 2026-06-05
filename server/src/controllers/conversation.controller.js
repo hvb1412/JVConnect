@@ -16,7 +16,7 @@ const buildDirectConversationSummary = async (conversation, userId) => {
     const [latestMessage, unreadCount] = await Promise.all([
         Message.findOne({ conversation: conversation._id })
             .sort({ createdAt: -1 })
-            .populate("sender", "name email avatarURL"),
+            .populate("sender", "name email avatarURL role"),
         Message.countDocuments({
             conversation: conversation._id,
             sender: { $ne: userId },
@@ -44,7 +44,7 @@ const buildGroupConversationSummary = async (conversation, userId) => {
     const [latestMessage, unreadCount] = await Promise.all([
         Message.findOne({ conversation: conversation._id })
             .sort({ createdAt: -1 })
-            .populate("sender", "name email avatarURL"),
+            .populate("sender", "name email avatarURL role"),
         Message.countDocuments({
             conversation: conversation._id,
             sender: { $ne: userId },
@@ -80,16 +80,16 @@ export const listConversations = async (req, res) => {
                 $or: [{ user1: userId }, { user2: userId }],
                 status: "accepted",
             })
-                .populate("user1", "name email avatarURL")
-                .populate("user2", "name email avatarURL")
+                .populate("user1", "name email avatarURL role")
+                .populate("user2", "name email avatarURL role")
                 .sort({ updatedAt: -1 }),
 
             Conversation.find({
                 type: "group",
                 members: userId,
             })
-                .populate("members", "name email avatarURL")
-                .populate("admin", "name email avatarURL")
+                .populate("members", "name email avatarURL role")
+                .populate("admin", "name email avatarURL role")
                 .sort({ updatedAt: -1 }),
         ]);
 
@@ -121,8 +121,8 @@ export const getPendingConversations = async (req, res) => {
             status: "pending",
             initiator: { $ne: userId },
         })
-            .populate("user1", "name email avatarURL")
-            .populate("user2", "name email avatarURL")
+            .populate("user1", "name email avatarURL role")
+            .populate("user2", "name email avatarURL role")
             .sort({ updatedAt: -1 });
 
         const data = await Promise.all(
@@ -241,7 +241,7 @@ export const getConversationWithUser = async (req, res) => {
             return res.status(400).json({ success: false, message: "Cannot start conversation with yourself" });
         }
 
-        const partner = await User.findById(partnerId).select("name email avatarURL");
+        const partner = await User.findById(partnerId).select("name email avatarURL role");
         if (!partner) return res.status(404).json({ success: false, message: "Partner user not found" });
 
         let conversation = await Conversation.findOne({
@@ -270,8 +270,8 @@ export const getConversationWithUser = async (req, res) => {
         }
 
         conversation = await Conversation.findById(conversation._id)
-            .populate("user1", "name email avatarURL")
-            .populate("user2", "name email avatarURL");
+            .populate("user1", "name email avatarURL role")
+            .populate("user2", "name email avatarURL role");
 
         const partnerData =
             String(conversation.user1._id) === String(userId)
@@ -295,10 +295,10 @@ export const getConversationMessages = async (req, res) => {
         if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
         const conversation = await Conversation.findById(id)
-            .populate("user1", "name email avatarURL")
-            .populate("user2", "name email avatarURL")
-            .populate("members", "name email avatarURL")
-            .populate("admin", "name email avatarURL");
+            .populate("user1", "name email avatarURL role")
+            .populate("user2", "name email avatarURL role")
+            .populate("members", "name email avatarURL role")
+            .populate("admin", "name email avatarURL role");
 
         if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
 
@@ -317,8 +317,8 @@ export const getConversationMessages = async (req, res) => {
         if (!isParticipant) return res.status(403).json({ success: false, message: "Forbidden" });
 
         const messages = await Message.find({ conversation: conversation._id })
-            .populate("sender", "name email avatarURL")
-            .populate("pinnedBy", "name email avatarURL")
+            .populate("sender", "name email avatarURL role")
+            .populate("pinnedBy", "name email avatarURL role")
             .sort({ createdAt: 1 });
 
         return res.status(200).json({ success: true, data: { conversation, messages } });
@@ -403,8 +403,8 @@ export const createGroupChat = async (req, res) => {
         });
 
         const populated = await Conversation.findById(conversation._id)
-            .populate("members", "name email avatarURL")
-            .populate("admin", "name email avatarURL");
+            .populate("members", "name email avatarURL role")
+            .populate("admin", "name email avatarURL role");
 
         return res.status(201).json({ success: true, data: populated });
     } catch (error) {
@@ -441,8 +441,8 @@ export const addMemberToGroup = async (req, res) => {
         await conversation.save();
 
         const populated = await Conversation.findById(id)
-            .populate("members", "name email avatarURL")
-            .populate("admin", "name email avatarURL");
+            .populate("members", "name email avatarURL role")
+            .populate("admin", "name email avatarURL role");
 
         return res.status(200).json({ success: true, data: populated });
     } catch (error) {
@@ -498,8 +498,8 @@ export const getPinnedMessages = async (req, res) => {
             isPinned: true,
             isRecalled: false,
         })
-            .populate("sender", "name email avatarURL")
-            .populate("pinnedBy", "name email avatarURL")
+            .populate("sender", "name email avatarURL role")
+            .populate("pinnedBy", "name email avatarURL role")
             .sort({ pinnedAt: -1 });
 
         return res.status(200).json({ success: true, data: messages });

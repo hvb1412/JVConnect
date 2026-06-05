@@ -8,6 +8,7 @@ import { Input } from "../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../components/ui/dialog";
 import { RefreshCw, Search, Shield, ShieldOff, AlertCircle } from "lucide-react";
 import { listUsers, toggleUserRestriction, AdminUser } from "../lib/adminApi";
 import { useTranslation } from "../lib/i18n";
@@ -18,6 +19,8 @@ export function AdminUsers() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedUserForBan, setSelectedUserForBan] = useState<AdminUser | null>(null);
+    const [banDaysInput, setBanDaysInput] = useState<number | "">(7);
 
     useEffect(() => {
         fetchUsers();
@@ -36,9 +39,9 @@ export function AdminUsers() {
         }
     };
 
-    const handleToggleRestriction = async (userId: string) => {
+    const handleToggleRestriction = async (userId: string, days?: number) => {
         try {
-            const updatedUser = await toggleUserRestriction(userId, 7);
+            const updatedUser = await toggleUserRestriction(userId, days);
             setUsers(users.map((u) => (u._id === userId ? updatedUser : u)));
         } catch (err: any) {
             setError(err.message || "制限の切り替えに失敗しました");
@@ -170,7 +173,14 @@ export function AdminUsers() {
                                                     <Button
                                                         size="sm"
                                                         variant={user.isRestricted ? "outline" : "destructive"}
-                                                        onClick={() => handleToggleRestriction(user._id)}
+                                                        onClick={() => {
+                                                            if (user.isRestricted) {
+                                                                handleToggleRestriction(user._id);
+                                                            } else {
+                                                                setSelectedUserForBan(user);
+                                                                setBanDaysInput(7);
+                                                            }
+                                                        }}
                                                         disabled={user.role === 'admin'}
                                                     >
                                                         {user.isRestricted ? (
@@ -201,6 +211,41 @@ export function AdminUsers() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={!!selectedUserForBan} onOpenChange={(open) => !open && setSelectedUserForBan(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>ユーザーの制限</DialogTitle>
+                        <DialogDescription>
+                            ユーザーを制限する日数を入力してください。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <label className="block text-sm font-medium mb-2 text-gray-700">制限期間（日数）</label>
+                        <Input 
+                            type="number" 
+                            min="1" 
+                            value={banDaysInput} 
+                            onChange={(e) => setBanDaysInput(e.target.value ? parseInt(e.target.value) : "")}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSelectedUserForBan(null)}>キャンセル</Button>
+                        <Button 
+                            variant="destructive" 
+                            disabled={!banDaysInput || banDaysInput < 1}
+                            onClick={() => {
+                                if (selectedUserForBan && banDaysInput) {
+                                    handleToggleRestriction(selectedUserForBan._id, Number(banDaysInput));
+                                    setSelectedUserForBan(null);
+                                }
+                            }}
+                        >
+                            制限する
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

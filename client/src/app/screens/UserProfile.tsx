@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { Logo } from "../components/Logo";
 import { HeaderActions } from "../components/HeaderActions";
 import { useTranslation } from "../lib/i18n";
@@ -41,6 +41,8 @@ const REPORT_TYPES = ["harassment", "inappropriate", "fake", "spam", "violence",
 export function UserProfile() {
     const { t } = useTranslation();
     const { id } = useParams();
+    const navigate = useNavigate();
+    const isAdmin = localStorage.getItem("role") === "admin";
 
     const [user, setUser] = useState<UiUser | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -168,13 +170,23 @@ export function UserProfile() {
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                                <nav className="hidden md:flex items-center gap-6">
-                                    <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
-                                    <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
-                                    <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
-                                    <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
-                                    <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
-                                </nav>
+                        {isAdmin ? (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">{t("admin_dashboard_title")}</Link>
+                                <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">{t("users_manage")}</Link>
+                                <Link to="/admin/events" className="text-gray-600 hover:text-gray-900">{t("events_manage")}</Link>
+                                <Link to="/admin/reports" className="text-gray-600 hover:text-gray-900">{t("reports_manage")}</Link>
+                                <Link to="/user/chats" className="text-gray-600 hover:text-gray-900">{t("messages_title", { defaultValue: "Tin nhắn" })}</Link>
+                            </nav>
+                        ) : (
+                            <nav className="hidden md:flex items-center gap-6">
+                                <Link to="/user/home" className="text-gray-600 hover:text-gray-900">{t("nav_home")}</Link>
+                                <Link to="/user/search" className="text-gray-600 hover:text-gray-900">{t("nav_search")}</Link>
+                                <Link to="/user/friends" className="text-gray-600 hover:text-gray-900">{t("nav_friends")}</Link>
+                                <Link to="/user/events" className="text-gray-600 hover:text-gray-900">{t("nav_events")}</Link>
+                                <Link to="/user/mypage" className="text-gray-600 hover:text-gray-900">{t("nav_mypage")}</Link>
+                            </nav>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <HeaderActions />
@@ -184,11 +196,9 @@ export function UserProfile() {
 
             {/* Main Content */}
             <div className="max-w-5xl mx-auto px-6 py-8">
-                <Button asChild variant="ghost" className="mb-6">
-                    <Link to="/user/search">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        {t("back")}
-                    </Link>
+                <Button variant="ghost" className="mb-6" onClick={() => navigate(-1)}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {t("back")}
                 </Button>
 
                 <div className="grid lg:grid-cols-3 gap-6">
