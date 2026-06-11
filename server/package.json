@@ -6,6 +6,8 @@
   "main": "server.js",
   "scripts": {
     "test": "vitest run",
+    "postinstall": "npm install --prefix ../client && npm run build --prefix ../client",
+    "build": "npm run build --prefix ../client",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed.js"

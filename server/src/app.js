@@ -40,6 +40,11 @@ if (fs.existsSync(clientDistPath)) {
 
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
+} else {
+  console.warn(`[Server] Không tìm thấy client dist tại ${clientDistPath}. Nếu muốn deploy frontend cùng backend, hãy build client trước khi khởi chạy server.`);
+  app.get('/', (req, res) => {
+    res.send('JVConnect backend is running. Frontend static files not found.');
+  });
 }
 
 app.use((req, res, next) => {
